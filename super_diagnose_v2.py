@@ -40,7 +40,7 @@ from rich import box
 
 # ============ CONFIGURATION ============
 CACHE_DIR = os.path.join(os.getcwd(), "AI_Reports")
-GEMINI_MODEL = "gemini-1.5-flash" 
+GEMINI_MODEL = "gemini-pro" 
 console = Console()
 
 # ============ CORE ENGINE ============
