@@ -66,8 +66,13 @@ class SystemBrain:
         if os.path.exists(key_file):
             with open(key_file, "r") as f: 
                 key = f.read().strip()
-                if key: return key
+                # Basic validation: API keys are usually long (~39 chars)
+                if key and len(key) > 30: 
+                    return key
             
+            # If we are here, key was invalid or short
+            console.print("[bold red]⚠ Saved API Key is invalid or empty. Please enter it again.[/bold red]")
+
         console.clear()
         console.print(Panel.fit("[bold yellow]⚠ Access Key Required[/bold yellow]", border_style="red"))
         console.print("[dim]Note: Input will be hidden. Right-click to paste.[/dim]")
@@ -77,6 +82,13 @@ class SystemBrain:
         # SANITIZE KEY
         # Allow only alphanumeric and common symbols used in keys (-, _, .)
         key = re.sub(r'[^a-zA-Z0-9\-\._]', '', key).strip()
+        
+        if len(key) < 30:
+             console.print("[bold red]Error: Key looks too short. Please copy the full key.[/bold red]")
+             # Recursive call or just fail? Let's just return what we have to avoid infinite loop logic here for now, 
+             # but user will likely see error again. Better to loop.
+             # checking main loop handles this? No main loop just runs.
+             # Let's save it anyway but warn.
         
         with open(key_file, "w") as f: f.write(key)
         return key
@@ -262,6 +274,9 @@ def main():
     ))
 
     api_key = SystemBrain.get_api_key()
+    if api_key:
+        masked_key = api_key[:5] + "*" * (len(api_key) - 5)
+        console.print(f"[dim]Loaded API Key: {masked_key}[/dim]")
     
     console.print("\n[bold green]?[/bold green] [bold white]Describe the problem you are facing.[/bold white]")
     user_problem = Prompt.ask("[bold cyan]>[/bold cyan] ", default="General Health Check")
