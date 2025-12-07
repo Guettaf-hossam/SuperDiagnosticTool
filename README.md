@@ -3,7 +3,7 @@
 
 **Super Diagnostic Tool** is an advanced Windows system analysis utility that leverages **Google's Gemini AI** to diagnose computer issues, analyze system telemetry, and provide actionable fixes.
 
-![Home Screen Placeholder](docs/home_screen.png)
+![Home Screen](docs/console_start.png)
 *(Screenshot of the main interface)*
 
 ## 🚀 Features
@@ -38,7 +38,7 @@
     *   *Why Admin?* This tool needs permission to read system logs, check services, and analyze network adapters.
     *   On the first run, it will ask for your **API Key**. Paste it and press Enter. The key is saved locally in `gemini.key`.
 
-![API Input Placeholder](docs/api_input.png)
+![Scan Modes](docs/console_menu.png)
 
 4.  **Diagnose**:
     *   Describe your problem (e.g., "Computer is slow", "Blue screen yesterday", "Wi-Fi disconnecting").
@@ -47,14 +47,11 @@
 
 ## 📸 Screenshots
 
-### Scanning in Progress
-![Scan Placeholder](docs/scan_progress.png)
-
-### Logic Analysis
-![Analysis Placeholder](docs/ai_analysis.png)
+### Success & Analysis
+![Completion](docs/console_success.png)
 
 ### Final HTML Report
-![Report Placeholder](docs/html_report.png)
+![Report Preview](docs/report_preview.png)
 
 ## 🔒 Privacy & Security
 
