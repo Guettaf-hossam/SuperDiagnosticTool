@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import platform
 import json
@@ -72,8 +73,10 @@ class SystemBrain:
         console.print("[dim]Note: Input will be hidden. Right-click to paste.[/dim]")
         key = Prompt.ask("[bold cyan]Enter Google Gemini API Key[/bold cyan]", password=True)
         
+        
         # SANITIZE KEY
-        key = key.strip().replace("\n", "").replace("\r", "")
+        # Allow only alphanumeric and common symbols used in keys (-, _, .)
+        key = re.sub(r'[^a-zA-Z0-9\-\._]', '', key).strip()
         
         with open(key_file, "w") as f: f.write(key)
         return key
