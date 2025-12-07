@@ -71,6 +71,14 @@ class SystemBrain:
         with open(key_file, "w") as f: f.write(key)
         return key
 
+    @staticmethod
+    def reset_api_key():
+        if os.path.exists("gemini.key"):
+            os.remove("gemini.key")
+        os.environ.pop("GEMINI_API_KEY", None)
+        console.print("[bold green]API Key has been reset![/bold green]")
+        return SystemBrain.get_api_key()
+
 # ============ SCANNING TASKS ============
 
 def scan_context_system():
@@ -253,7 +261,18 @@ def main():
     console.print("[1] [bold green]Quick Scan[/bold green] (CPU, RAM, Basic Info)")
     console.print("[2] [bold red]Deep Scan[/bold red] (Full System, Network, Logs, Security, Bluetooth)")
     console.print("[3] [bold magenta]COMPLETE SYSTEM SCAN[/bold magenta] (Everything + Disk Health, GPU, Startup Apps)")
-    mode = Prompt.ask("[bold cyan]>[/bold cyan] ", choices=["1", "2", "3"], default="3")
+    console.print("[4] [bold white]Update API Key[/bold white]")
+    mode = Prompt.ask("[bold cyan]>[/bold cyan] ", choices=["1", "2", "3", "4"], default="3")
+
+    if mode == "4":
+        api_key = SystemBrain.reset_api_key()
+        console.print("\n[bold green]Key Updated Successfully![/bold green]")
+        # Ask for mode again or just restart logic? Simplest is to ask for mode again
+        console.print("\n[bold yellow]Select Scan Mode:[/bold yellow]")
+        console.print("[1] [bold green]Quick Scan[/bold green] (CPU, RAM, Basic Info)")
+        console.print("[2] [bold red]Deep Scan[/bold red] (Full System, Network, Logs, Security, Bluetooth)")
+        console.print("[3] [bold magenta]COMPLETE SYSTEM SCAN[/bold magenta] (Everything + Disk Health, GPU, Startup Apps)")
+        mode = Prompt.ask("[bold cyan]>[/bold cyan] ", choices=["1", "2", "3"], default="3")
 
     if mode == "1":
         tasks = [scan_context_system, scan_performance]
