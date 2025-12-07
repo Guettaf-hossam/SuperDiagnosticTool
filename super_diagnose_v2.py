@@ -63,11 +63,18 @@ class SystemBrain:
         
         key_file = "gemini.key"
         if os.path.exists(key_file):
-            with open(key_file, "r") as f: return f.read().strip()
+            with open(key_file, "r") as f: 
+                key = f.read().strip()
+                if key: return key
             
         console.clear()
         console.print(Panel.fit("[bold yellow]⚠ Access Key Required[/bold yellow]", border_style="red"))
+        console.print("[dim]Note: Input will be hidden. Right-click to paste.[/dim]")
         key = Prompt.ask("[bold cyan]Enter Google Gemini API Key[/bold cyan]", password=True)
+        
+        # SANITIZE KEY
+        key = key.strip().replace("\n", "").replace("\r", "")
+        
         with open(key_file, "w") as f: f.write(key)
         return key
 
