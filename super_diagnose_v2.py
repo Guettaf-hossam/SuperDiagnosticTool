@@ -39,7 +39,7 @@ from rich import box
 
 # ============ CONFIGURATION ============
 CACHE_DIR = os.path.join(os.getcwd(), "AI_Reports")
-GEMINI_MODEL = "gemini-2.0-flash" 
+GEMINI_MODEL = "gemini-1.5-flash" 
 console = Console()
 
 # ============ CORE ENGINE ============
@@ -313,13 +313,25 @@ def main():
     try:
         # FIXED: Changed 'binary' to 'dots' to prevent crash
         with console.status("[bold green]Analyzing patterns and logic...", spinner="dots"):
-            # 3. Offline Mode / Graceful Failure
-            try:
-                response = model.generate_content(prompt)
-                ai_analysis = response.text.replace("```html", "").replace("```", "").strip()
-            except Exception as net_err:
-                ai_analysis = f"<h3>⚠ AI Analysis Unavailable</h3><p>Could not connect to Gemini AI Server. Error: {str(net_err)}</p><p>Please check your internet connection. The raw data below is still valid.</p>"
-                console.print(f"[bold red]AI Connection Failed:[/bold red] {net_err}")
+            # 3. Robust AI Call with Retries
+            max_retries = 3
+            ai_analysis = ""
+            for attempt in range(max_retries):
+                try:
+                    response = model.generate_content(prompt)
+                    ai_analysis = response.text.replace("```html", "").replace("```", "").strip()
+                    break # Success!
+                except Exception as e:
+                    if "429" in str(e) or "Resource exhausted" in str(e):
+                        if attempt < max_retries - 1:
+                            console.print(f"[yellow]Server busy (Quota), retrying in 4 seconds... ({attempt+1}/{max_retries})[/yellow]")
+                            time.sleep(4)
+                            continue
+                    
+                    # If we ran out of retries or it's another error
+                    ai_analysis = f"<h3>⚠ AI Analysis Unavailable</h3><p>Could not connect to Gemini AI Server. Error: {str(e)}</p><p><b>Tip:</b> The Free Tier might be temporarily busy. Try again in a minute.</p>"
+                    # console.print(f"[bold red]AI Connection Failed:[/bold red] {e}") # Optional: Don't show scary red text if we handle it gracefully in the report
+                    break
             
         html_content = generate_super_html(collected_data, ai_analysis, user_problem)
         
