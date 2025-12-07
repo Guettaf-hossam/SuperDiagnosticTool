@@ -1,5 +1,9 @@
 /ai_reports
+/AI_Reports
 /build
 /dist
 __pycache__/
 *.pyc
+*.spec
+gemini.key
+Diagnosis_*.html

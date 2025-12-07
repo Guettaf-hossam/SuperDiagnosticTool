@@ -17,7 +17,7 @@ def run_command(cmd):
 
 def main():
     print("=" * 60)
-    print("Building Windows Diagnostic Tool EXE")
+    print("Building Windows Diagnostic Tool (v1.0)")
     print("=" * 60)
     print()
     
@@ -58,8 +58,8 @@ def main():
     import shutil
     if os.path.exists("build"):
         shutil.rmtree("build")
-    if os.path.exists("AI-Diagnostic-Tool.spec"):
-        os.remove("AI-Diagnostic-Tool.spec")
+    if os.path.exists("SuperDiagnosticTool.spec"):
+        os.remove("SuperDiagnosticTool.spec")
     
     print("[4/4] Done!")
     print()
@@ -67,10 +67,10 @@ def main():
     print("SUCCESS!")
     print("=" * 60)
     print()
-    print("Your EXE file is located in: dist\\AI-Diagnostic-Tool.exe")
+    print("Your EXE file is located in: dist\\SuperDiagnosticTool.exe")
     print()
     print("You can now:")
-    print("  1. Copy dist\\AI-Diagnostic-Tool.exe to any folder")
+    print("  1. Copy dist\\SuperDiagnosticTool.exe to any folder")
     print("  2. Run it directly (no Python needed!)")
     print("  3. Share it with others")
     print()
