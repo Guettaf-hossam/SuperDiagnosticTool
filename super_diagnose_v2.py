@@ -66,6 +66,9 @@ class SystemBrain:
         if os.path.exists(key_file):
             with open(key_file, "r") as f: 
                 key = f.read().strip()
+                # Clean any potential invisible chars (like BOM) or whitespace
+                key = re.sub(r'[^a-zA-Z0-9\-\._]', '', key).strip()
+                
                 # Basic validation: API keys are usually long (~39 chars)
                 if key and len(key) > 30: 
                     return key
@@ -85,11 +88,6 @@ class SystemBrain:
         
         if len(key) < 30:
              console.print("[bold red]Error: Key looks too short. Please copy the full key.[/bold red]")
-             # Recursive call or just fail? Let's just return what we have to avoid infinite loop logic here for now, 
-             # but user will likely see error again. Better to loop.
-             # checking main loop handles this? No main loop just runs.
-             # Let's save it anyway but warn.
-        
         with open(key_file, "w") as f: f.write(key)
         return key
 
@@ -160,6 +158,62 @@ def scan_startup_apps():
         "Startup Apps": SystemBrain.run_powershell("Get-CimInstance Win32_StartupCommand | Select-Object Name, Command, Location, User"),
         "Failed Services": SystemBrain.run_powershell("Get-Service | Where-Object {$_.Status -eq 'Stopped' -and $_.StartType -eq 'Automatic'} | Select-Object Name, DisplayName")
     }
+
+def scan_suspicious_processes():
+    """
+    Scans for processes that might be suspicious based on:
+    1. High Resource Usage (Potential Miners)
+    2. Weird locations (AppData, Temp) - partially covered by checking path
+    3. Missing signatures or weird names (left to AI to judge name)
+    """
+    suspicious_list = []
+    
+    # Whitelist of trusted apps to ignore to prevent false positives
+    # Antigravity (The Agent), SuperDiagnosticTool (Self), GitHub related tools
+    WHITELIST = [
+        "Antigravity.exe", "SuperDiagnosticTool.exe", "super_diagnose_v2.exe", 
+        "python.exe", "git.exe", "GitHubDesktop.exe", "ssh-agent.exe"
+    ]
+    
+    # We will prioritize:
+    # - High CPU > 1%
+    # - High Memory > 100MB
+    # - Processes running from user folders (often malware location)
+    
+    for proc in psutil.process_iter(['pid', 'name', 'exe', 'username', 'cpu_percent', 'memory_info']):
+        try:
+            pinfo = proc.info
+            name = pinfo['name']
+            
+            # Skip Whitelisted Apps
+            if name in WHITELIST:
+                continue
+                
+            # Filter 1: Resources
+            is_resource_heavy = (pinfo['cpu_percent'] > 1.0) or (pinfo['memory_info'].rss > 100 * 1024 * 1024)
+            
+            # Filter 2: Location (Naive check)
+            exe_path = pinfo['exe'] or ""
+            is_user_path = "Users" in exe_path and "Windows" not in exe_path
+            
+            # We want to capture things that are EITHER heavy OR in user paths OR just random sample?
+            # Let's just grab the heavy ones and user-space ones to save tokens.
+            if is_resource_heavy or is_user_path:
+                suspicious_list.append({
+                    "Name": name,
+                    "PID": pinfo['pid'],
+                    "Path": exe_path,
+                    "User": pinfo['username'],
+                    "CPU%": pinfo['cpu_percent'],
+                    "Mem(MB)": round(pinfo['memory_info'].rss / (1024 * 1024), 2)
+                })
+                
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+            
+    # Sort by CPU usage and take top 30 to respect context window
+    suspicious_list.sort(key=lambda x: x['CPU%'], reverse=True)
+    return "Suspicious Process Audit", suspicious_list[:30]
 
 # ============ REPORT GENERATOR ============
 
@@ -303,10 +357,10 @@ def main():
         tasks = [scan_context_system, scan_performance]
         console.print("[dim]Running Quick Scan...[/dim]")
     elif mode == "2":
-        tasks = [scan_context_system, scan_performance, scan_network_deep, scan_security_integrity, scan_event_logs, scan_bluetooth]
+        tasks = [scan_context_system, scan_performance, scan_network_deep, scan_security_integrity, scan_event_logs, scan_bluetooth, scan_suspicious_processes]
         console.print("[dim]Running Deep Scan...[/dim]")
     else:
-        tasks = [scan_context_system, scan_performance, scan_network_deep, scan_security_integrity, scan_event_logs, scan_bluetooth, scan_disk_health, scan_gpu, scan_startup_apps]
+        tasks = [scan_context_system, scan_performance, scan_network_deep, scan_security_integrity, scan_event_logs, scan_bluetooth, scan_disk_health, scan_gpu, scan_startup_apps, scan_suspicious_processes]
         console.print("[bold magenta]INITIATING COMPLETE SYSTEM SCAN...[/bold magenta]")
     collected_data = {"User Reported Issue": user_problem}
     
@@ -338,20 +392,37 @@ def main():
     model = genai.GenerativeModel(GEMINI_MODEL)
     
     prompt = f"""
-    You are an Elite Tier-3 Windows Systems Engineer.
+    You are an Elite Tier-3 Windows Systems Engineer & Cybersecurity Analyst.
     USER COMPLAINT: "{user_problem}"
     SYSTEM TELEMETRY DATA:
     {json.dumps(collected_data, default=str)}
     
     YOUR MISSION:
-    1. Correlate the "User Complaint" with the provided "Telemetry Data".
-    2. Provide technical steps (PowerShell/CMD/Settings).
-    3. If Bluetooth or Wi-Fi is mentioned, assume hardware troubleshooting steps are needed if logs are clean.
+    1. ANALYZE: Correlate complaint with telemetry.
+    2. AUDIT: Check "Suspicious Process Audit".
+    3. REPORT: Generate a professional HTML-ready diagnosis.
+    4. HEAL: Generate a SAFELY EXECUTABLE PowerShell script to fix immediate issues (e.g., killing bad processes, clearing temp, restarting services). 
+       - DO NOT delete user data. 
+       - DO NOT run dangerous commands like formatting.
+       - Use 'Write-Host' to log steps in the script.
     
-    OUTPUT FORMAT (HTML-Ready):
+    OUTPUT FORMAT:
+    
+    [ANALYSIS_START]
+    <h3>🛡️ Security & Malware Analysis</h3>
+    ...
     <h3>Diagnosis</h3>
-    <h3>Step-by-Step Fix</h3>
+    ...
     <h3>Expert Advice</h3>
+    ...
+    [ANALYSIS_END]
+    
+    [FIX_START]
+    # PowerShell script goes here
+    Write-Host "Starting Auto-Heal..."
+    # kill process example:
+    # Stop-Process -Name "process_name" -Force -ErrorAction SilentlyContinue
+    [FIX_END]
     """
     
     try:
@@ -359,11 +430,11 @@ def main():
         with console.status("[bold green]Analyzing patterns and logic...", spinner="dots"):
             # 3. Robust AI Call with Retries
             max_retries = 3
-            ai_analysis = ""
+            raw_response = ""
             for attempt in range(max_retries):
                 try:
                     response = model.generate_content(prompt)
-                    ai_analysis = response.text.replace("```html", "").replace("```", "").strip()
+                    raw_response = response.text
                     break # Success!
                 except Exception as e:
                     if "429" in str(e) or "Resource exhausted" in str(e):
@@ -373,10 +444,27 @@ def main():
                             continue
                     
                     # If we ran out of retries or it's another error
-                    ai_analysis = f"<h3>⚠ AI Analysis Unavailable</h3><p>Could not connect to Gemini AI Server. Error: {str(e)}</p><p><b>Tip:</b> The Free Tier might be temporarily busy. Try again in a minute.</p>"
-                    # console.print(f"[bold red]AI Connection Failed:[/bold red] {e}") # Optional: Don't show scary red text if we handle it gracefully in the report
+                    raw_response = f"[ANALYSIS_START]<h3>⚠ AI Analysis Unavailable</h3><p>Error: {str(e)}</p>[ANALYSIS_END]"
                     break
+        
+        # --- PARSING RESPONSE ---
+        ai_analysis = ""
+        fix_script = ""
+        
+        # Extract Analysis
+        if "[ANALYSIS_START]" in raw_response:
+            ai_analysis = raw_response.split("[ANALYSIS_START]")[1].split("[ANALYSIS_END]")[0].strip()
+        else:
+             # Fallback if AI forgot tags
+            ai_analysis = raw_response
             
+        # Extract Fix Script
+        if "[FIX_START]" in raw_response:
+            fix_script = raw_response.split("[FIX_START]")[1].split("[FIX_END]")[0].strip()
+            # Clean up potential markdown code blocks if AI added them
+            fix_script = fix_script.replace("```powershell", "").replace("```", "").strip()
+
+        # --- GENERATE REPORT ---
         html_content = generate_super_html(collected_data, ai_analysis, user_problem)
         
         if not os.path.exists(CACHE_DIR): os.makedirs(CACHE_DIR)
@@ -385,9 +473,45 @@ def main():
         with open(report_file, "w", encoding="utf-8") as f:
             f.write(html_content)
             
-        console.print(Panel(f"[bold green]✔ MISSION ACCOMPLISHED[/bold green]\nReport generated: [underline]{report_file}[/underline]", border_style="green"))
+        console.print(Panel(f"[bold green]✔ ANALYSIS COMPLETE[/bold green]\nReport generated: [underline]{report_file}[/underline]", border_style="green"))
         
-        if Confirm.ask("Open the report now?"):
+        # --- AUTO-HEALER INTERFACE ---
+        if fix_script and len(fix_script) > 10:
+            console.print("\n")
+            console.print(Panel.fit("[bold magenta]💉 AUTO-HEALER MODULE ACTIVATED[/bold magenta]", border_style="magenta"))
+            console.print("[dim]The AI has generated a repair script for you:[/dim]\n")
+            
+            # Show preview of script
+            console.print(Panel(fix_script, title="Proposed Fixes (PowerShell)", style="white on black"))
+            
+            if Confirm.ask("[bold yellow]⚡ DO YOU WANT TO EXECUTE THIS SURGICAL FIX NOW?[/bold yellow]"):
+                console.print("\n[bold green]Initiating Surgery...[/bold green]")
+                
+                # Save script to temp file
+                script_path = os.path.join(CACHE_DIR, "surgery.ps1")
+                with open(script_path, "w") as f:
+                    f.write(fix_script)
+                
+                # Execute
+                try:
+                    # Powershell execution policy might block scripts, so we use -ExecutionPolicy Bypass
+                    p = subprocess.run(
+                        ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path],
+                        capture_output=False # Let output flow to console so user sees Write-Host
+                    )
+                    
+                    if p.returncode == 0:
+                        console.print("\n[bold green]✔ SURGERY SUCCESSFUL[/bold green]")
+                    else:
+                        console.print(f"\n[bold red]⚠ SURGERY COMPLETED WITH WARNINGS (Code {p.returncode})[/bold red]")
+                        
+                except Exception as e:
+                     console.print(f"[bold red]Execution Failed:[/bold red] {e}")
+            else:
+                console.print("[dim]Surgery skipped.[/dim]")
+
+        # Finally open report
+        if Confirm.ask("\nOpen the detailed HTML report?"):
             webbrowser.open(f"file://{report_file}")
             
     except Exception as e:
