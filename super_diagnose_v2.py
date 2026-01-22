@@ -392,76 +392,70 @@ def main():
     model = genai.GenerativeModel(GEMINI_MODEL)
     
     prompt = f"""
-    You are an Elite Tier-3 Windows Systems Engineer & Cybersecurity Analyst.
-    USER COMPLAINT: "{user_problem}"
-    SYSTEM TELEMETRY DATA:
-    {json.dumps(collected_data, default=str)}
+    ROLE: Senior Windows Systems Engineer & Security Analyst.
+    CONTEXT: User is reporting system issues. Telemetry data is attached.
     
-    YOUR MISSION:
-    1. ANALYZE: Correlate complaint with telemetry.
-    2. AUDIT: Check "Suspicious Process Audit".
-    3. REPORT: Generate a professional HTML-ready diagnosis.
-    4. HEAL: Generate a SAFELY EXECUTABLE PowerShell script to fix immediate issues (e.g., killing bad processes, clearing temp, restarting services). 
-       - DO NOT delete user data. 
-       - DO NOT run dangerous commands like formatting.
-       - Use 'Write-Host' to log steps in the script.
+    TASK:
+    1. ANALYZE: Correlate user report with system metrics.
+    2. AUDIT: Review process list for anomalies (resource leaks, unknown binaries, potential malware).
+    3. REPORT: Generate a technical diagnosis in HTML format.
+    4. REMEDIATION: Generate a PowerShell script to resolve identified issues.
+       - Constraint: Operations must be non-destructive (no data loss).
+       - Constraint: Script must use 'Write-Host' for logging.
     
-    OUTPUT FORMAT:
+    OUTPUT STRUCTURE:
     
     [ANALYSIS_START]
-    <h3>🛡️ Security & Malware Analysis</h3>
+    <h3>Security & Process Audit</h3>
     ...
-    <h3>Diagnosis</h3>
+    <h3>System Diagnosis</h3>
     ...
-    <h3>Expert Advice</h3>
+    <h3>Recommendations</h3>
     ...
     [ANALYSIS_END]
     
     [FIX_START]
-    # PowerShell script goes here
-    Write-Host "Starting Auto-Heal..."
-    # kill process example:
-    # Stop-Process -Name "process_name" -Force -ErrorAction SilentlyContinue
+    # Remediation Script
+    Write-Host "Initializing remediation protocols..."
+    # ...
     [FIX_END]
+    
+    USER COMPLAINT: "{user_problem}"
+    TELEMETRY:
+    {json.dumps(collected_data, default=str)}
     """
     
     try:
-        # FIXED: Changed 'binary' to 'dots' to prevent crash
-        with console.status("[bold green]Analyzing patterns and logic...", spinner="dots"):
-            # 3. Robust AI Call with Retries
+        with console.status("Processing telemetry logic...", spinner="dots"):
+            # Robust API call with exponential backoff
             max_retries = 3
             raw_response = ""
             for attempt in range(max_retries):
                 try:
                     response = model.generate_content(prompt)
                     raw_response = response.text
-                    break # Success!
+                    break 
                 except Exception as e:
                     if "429" in str(e) or "Resource exhausted" in str(e):
                         if attempt < max_retries - 1:
-                            console.print(f"[yellow]Server busy (Quota), retrying in 4 seconds... ({attempt+1}/{max_retries})[/yellow]")
+                            console.print(f"[yellow]API quota limit reached. Retrying in 4s... ({attempt+1}/{max_retries})[/yellow]")
                             time.sleep(4)
                             continue
                     
-                    # If we ran out of retries or it's another error
-                    raw_response = f"[ANALYSIS_START]<h3>⚠ AI Analysis Unavailable</h3><p>Error: {str(e)}</p>[ANALYSIS_END]"
+                    raw_response = f"[ANALYSIS_START]<h3>Analysis Unavailable</h3><p>API Error: {str(e)}</p>[ANALYSIS_END]"
                     break
         
-        # --- PARSING RESPONSE ---
+        # --- PARSE RESPONSE ---
         ai_analysis = ""
         fix_script = ""
         
-        # Extract Analysis
         if "[ANALYSIS_START]" in raw_response:
             ai_analysis = raw_response.split("[ANALYSIS_START]")[1].split("[ANALYSIS_END]")[0].strip()
         else:
-             # Fallback if AI forgot tags
             ai_analysis = raw_response
             
-        # Extract Fix Script
         if "[FIX_START]" in raw_response:
             fix_script = raw_response.split("[FIX_START]")[1].split("[FIX_END]")[0].strip()
-            # Clean up potential markdown code blocks if AI added them
             fix_script = fix_script.replace("```powershell", "").replace("```", "").strip()
 
         # --- GENERATE REPORT ---
@@ -473,49 +467,44 @@ def main():
         with open(report_file, "w", encoding="utf-8") as f:
             f.write(html_content)
             
-        console.print(Panel(f"[bold green]✔ ANALYSIS COMPLETE[/bold green]\nReport generated: [underline]{report_file}[/underline]", border_style="green"))
+        console.print(Panel(f"[bold green]ANALYSIS COMPLETE[/bold green]\nReport: [underline]{report_file}[/underline]", border_style="green"))
         
-        # --- AUTO-HEALER INTERFACE ---
+        # --- REMEDIATION MODULE ---
         if fix_script and len(fix_script) > 10:
             console.print("\n")
-            console.print(Panel.fit("[bold magenta]💉 AUTO-HEALER MODULE ACTIVATED[/bold magenta]", border_style="magenta"))
-            console.print("[dim]The AI has generated a repair script for you:[/dim]\n")
+            console.print(Panel.fit("[bold magenta]AUTOMATED REMEDIATION SYSTEM[/bold magenta]", border_style="magenta"))
+            console.print("[dim]A remediation script has been generated based on the analysis:[/dim]\n")
             
-            # Show preview of script
-            console.print(Panel(fix_script, title="Proposed Fixes (PowerShell)", style="white on black"))
+            console.print(Panel(fix_script, title="PowerShell Remediation Script", style="white on black"))
             
-            if Confirm.ask("[bold yellow]⚡ DO YOU WANT TO EXECUTE THIS SURGICAL FIX NOW?[/bold yellow]"):
-                console.print("\n[bold green]Initiating Surgery...[/bold green]")
+            if Confirm.ask("[bold yellow]EXECUTE REMEDIATION SCRIPT?[/bold yellow]"):
+                console.print("\n[bold green]Executing...[/bold green]")
                 
-                # Save script to temp file
-                script_path = os.path.join(CACHE_DIR, "surgery.ps1")
+                script_path = os.path.join(CACHE_DIR, "remediation.ps1")
                 with open(script_path, "w") as f:
                     f.write(fix_script)
                 
-                # Execute
                 try:
-                    # Powershell execution policy might block scripts, so we use -ExecutionPolicy Bypass
                     p = subprocess.run(
                         ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path],
-                        capture_output=False # Let output flow to console so user sees Write-Host
+                        capture_output=False 
                     )
                     
                     if p.returncode == 0:
-                        console.print("\n[bold green]✔ SURGERY SUCCESSFUL[/bold green]")
+                        console.print("\n[bold green]REMEDIATION SUCCESSFUL[/bold green]")
                     else:
-                        console.print(f"\n[bold red]⚠ SURGERY COMPLETED WITH WARNINGS (Code {p.returncode})[/bold red]")
+                        console.print(f"\n[bold red]REMEDIATION COMPLETED WITH WARNINGS (Code {p.returncode})[/bold red]")
                         
                 except Exception as e:
-                     console.print(f"[bold red]Execution Failed:[/bold red] {e}")
+                     console.print(f"[bold red]Execution Error:[/bold red] {e}")
             else:
-                console.print("[dim]Surgery skipped.[/dim]")
+                console.print("[dim]Script execution skipped.[/dim]")
 
-        # Finally open report
-        if Confirm.ask("\nOpen the detailed HTML report?"):
+        if Confirm.ask("\nOpen detailed report?"):
             webbrowser.open(f"file://{report_file}")
             
     except Exception as e:
-        console.print(f"[bold red]CRITICAL FAILURE:[/bold red] {e}")
+        console.print(f"[bold red]SYSTEM ERROR:[/bold red] {e}")
         input("Press Enter to exit...")
 
 if __name__ == "__main__":
