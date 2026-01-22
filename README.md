@@ -30,7 +30,7 @@ Beyond diagnosis, the tool generates safe, non-destructive PowerShell scripts to
 
 ## Usage Guide
 
-### prerequisites
+### Prerequisites
 - Windows 10 or Windows 11
 - Active Internet Connection (required for API analysis)
 - Google Gemini API Key (Gemini 2.5 Flash supported)
