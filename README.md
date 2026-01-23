@@ -58,4 +58,14 @@ To verify or reset your key, select Option 4 from the main menu.
 This tool is provided "as is" without warranty of any kind. While the remediation scripts are designed to be non-destructive, always review the generated script before execution. The author is not responsible for any system changes made by the automated scripts.
 
 ---
-Copyright © 2026 Knight. All Rights Reserved.
+## License
+
+**GNU GPLv3** - Copyright © 2026 Knight.
+
+This project is licensed under the **GNU General Public License v3.0**.
+
+> 🛑 **WARNING TO COMMERCIAL ENTITIES:**
+> This software is strictly **Copyleft**. Any software that uses, modifies, or links to this code **MUST** be released as open-source under the same GPLv3 license.
+> **Closed-source commercial distribution is strictly PROHIBITED and constitutes a violation of international copyright law.**
+
+See the [LICENSE](LICENSE) file for details.
