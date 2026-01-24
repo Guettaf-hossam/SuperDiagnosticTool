@@ -1,5 +1,9 @@
 # SuperDiagnosticTool
 
+<p align="center">
+  <img src="docs/icon.png" alt="SuperDiagnosticTool Icon" width="200"/>
+</p>
+
 **AI-Powered Windows Diagnostic & Self-Healing Tool**
 
 SuperDiagnosticTool is an intelligent system diagnostic utility that combines real-time hardware telemetry with Google Gemini AI to analyze, diagnose, and automatically remediate Windows system issues. Built with a safety-first architecture, it provides production-grade diagnostics for any Windows configuration.
