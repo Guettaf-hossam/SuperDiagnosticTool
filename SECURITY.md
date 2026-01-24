@@ -19,13 +19,10 @@ When you run `SuperDiagnosticTool.exe` for the first time, you will be prompted 
 
 Your API key will be stored locally in a file called `gemini.key` in the same directory as the executable. This file is:
 -   **Local only** - Never uploaded to GitHub
--   **Gitignored** - Protected from accidental commits
--   **User-specific** - Each user enters their own key
 
 ### Security Best Practices
 
 - **Never share your API key** with others
-- **Never commit** `gemini.key` to version control
 - **Regenerate your key** if you suspect it has been compromised
 - **Keep your key private** - It's linked to your Google account
 
