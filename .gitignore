@@ -1,27 +1,31 @@
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # PyInstaller
-build/
-dist/
+*.manifest
 *.spec
-
-# Temporary files
-*.tmp
-*.bak
-*.swp
-*~
-
-# Icon conversion files
-convert_icon.py
-icon.png
-
-# Build scripts (keep only the final one)
-build_exe.py
-build_exe_enhanced.py
-refresh_icon_cache.bat
 
 # IDE
 .vscode/

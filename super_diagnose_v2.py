@@ -10,21 +10,6 @@ from datetime import datetime
 import ctypes
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-REQUIRED_LIBS = ["psutil", "google-generativeai", "rich"]
-
-def install_libs():
-    for lib in REQUIRED_LIBS:
-        try:
-            import_name = "google.generativeai" if lib == "google-generativeai" else lib
-            if lib == "rich": import_name = "rich"
-            if lib == "psutil": import_name = "psutil"
-            __import__(import_name)
-        except ImportError:
-            print(f"Installing missing component: {lib}...")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", lib])
-
-install_libs()
-
 import psutil
 import google.generativeai as genai
 from rich.console import Console
@@ -34,6 +19,8 @@ from rich.prompt import Prompt, Confirm
 from rich.layout import Layout
 from rich.table import Table
 from rich import box
+
+from src.safety import RestorePointManager, ScriptValidator, SandboxExecutor, DryRunSimulator
 
 CACHE_DIR = os.path.join(os.getcwd(), "AI_Reports")
 GEMINI_MODEL = "gemini-2.5-flash" 
@@ -569,7 +556,7 @@ def main():
         with open(report_file, "w", encoding="utf-8") as f:
             f.write(html_content)
             
-        console.print(Panel(f"[bold green]ANALYSIS COMPLETE[/bold green]\nReport: [underline]{report_file}[/underline]", border_style="green"))
+        console.print(Panel(f"[bold green]ANALYSIS COMPLETE[/bold green]\\nReport: [underline]{report_file}[/underline]", border_style="green"))
         
         if fix_script and len(fix_script) > 10:
             console.print("\n")
@@ -578,34 +565,133 @@ def main():
             
             console.print(Panel(fix_script, title="PowerShell Remediation Script", style="white on black"))
             
-            if Confirm.ask("[bold yellow]EXECUTE REMEDIATION SCRIPT?[/bold yellow]"):
-                console.print("\n[bold green]Executing...[/bold green]")
+            # ═══════════════════════════════════════════════════════
+            # PRODUCTION-GRADE SAFETY LAYER
+            # ═══════════════════════════════════════════════════════
+            
+            console.print("\n[bold cyan]═══ SAFETY VALIDATION ═══[/bold cyan]")
+            
+            # Step 1: Dry-Run Simulation
+            console.print("[cyan]→ Running dry-run simulation...[/cyan]")
+            simulation = DryRunSimulator.simulate(fix_script)
+            
+            console.print(f"[yellow]  Services affected:[/yellow] {len(simulation['services_affected'])}")
+            console.print(f"[yellow]  Files affected:[/yellow] {len(simulation['files_affected'])}")
+            console.print(f"[yellow]  Registry keys affected:[/yellow] {len(simulation['registry_affected'])}")
+            console.print(f"[yellow]  Total changes:[/yellow] {simulation['total_changes']}")
+            console.print(f"[yellow]  Estimated risk:[/yellow] {simulation['estimated_risk']}\n")
+            
+            # Step 2: Script Validation
+            console.print("[cyan]→ Validating script safety...[/cyan]")
+            is_safe, warnings, risk_score = ScriptValidator.validate(fix_script)
+            risk_level = ScriptValidator.get_risk_level(risk_score)
+            
+            if not is_safe:
+                console.print(f"[bold red]✘ SCRIPT BLOCKED - Failed safety validation[/bold red]")
+                console.print(f"[red]Risk Score: {risk_score}/100 ({risk_level})[/red]\n")
+                for warning in warnings[:5]:
+                    console.print(f"  [red]• {warning}[/red]")
+                console.print("\n[yellow]Script has been saved for manual review:[/yellow]")
+                script_path = os.path.join(CACHE_DIR, "remediation_BLOCKED.ps1")
+                with open(script_path, "w") as f:
+                    f.write(fix_script)
+                console.print(f"[dim]{script_path}[/dim]")
                 
+                if Confirm.ask("\nOpen detailed report?"):
+                    webbrowser.open(f"file://{report_file}")
+                return
+            
+            console.print(f"[green]✔ Script validation passed[/green]")
+            console.print(f"[yellow]  Risk Score: {risk_score}/100 ({risk_level})[/yellow]\n")
+            
+            if warnings:
+                console.print("[yellow]Warnings detected:[/yellow]")
+                for warning in warnings[:5]:
+                    console.print(f"  [yellow]• {warning}[/yellow]")
+                if len(warnings) > 5:
+                    console.print(f"  [dim]... and {len(warnings) - 5} more warnings[/dim]")
+                console.print()
+            
+            # Step 3: User Confirmation
+            console.print("[bold yellow]═══ EXECUTION CONFIRMATION ═══[/bold yellow]")
+            console.print(f"[yellow]Risk Level: {risk_level}[/yellow]")
+            console.print(f"[yellow]Total Changes: {simulation['total_changes']}[/yellow]\n")
+            
+            if not Confirm.ask("[bold yellow]Proceed with remediation?[/bold yellow]"):
+                console.print("[dim]Script execution cancelled.[/dim]")
+                
+                # Save script for manual execution
                 script_path = os.path.join(CACHE_DIR, "remediation.ps1")
                 with open(script_path, "w") as f:
                     f.write(fix_script)
-                
-                try:
-                    p = subprocess.run(
-                        ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path],
-                        capture_output=False 
-                    )
-                    
-                    if p.returncode == 0:
-                        console.print("\n[bold green]REMEDIATION SUCCESSFUL[/bold green]")
-                    else:
-                        console.print(f"\n[bold red]REMEDIATION COMPLETED WITH WARNINGS (Code {p.returncode})[/bold red]")
-                         
-                except Exception as e:
-                     console.print(f"[bold red]Execution Error:[/bold red] {e}")
+                console.print(f"\n[cyan]Script saved to:[/cyan] [dim]{script_path}[/dim]")
+                console.print("[cyan]You can review and execute it manually as Administrator.[/cyan]")
                 
                 if Confirm.ask("\nOpen detailed report?"):
                     webbrowser.open(f"file://{report_file}")
+                return
+            
+            # Step 4: Create System Restore Point
+            console.print("\n[cyan]→ Creating system restore point...[/cyan]")
+            restore_success, restore_msg = RestorePointManager.create_restore_point()
+            
+            if restore_success:
+                console.print(f"[green]✔ Restore point created: {restore_msg}[/green]")
             else:
-                console.print("[dim]Script execution skipped.[/dim]")
+                console.print(f"[red]✘ Failed to create restore point: {restore_msg}[/red]")
+                console.print("[yellow]This may happen if:[/yellow]")
+                console.print("  [dim]• System Protection is disabled[/dim]")
+                console.print("  [dim]• Not enough disk space[/dim]")
+                console.print("  [dim]• Recent restore point already exists[/dim]\n")
                 
-                if Confirm.ask("\nOpen detailed report?"):
-                    webbrowser.open(f"file://{report_file}")
+                if not Confirm.ask("[bold red]Continue WITHOUT restore point? (NOT RECOMMENDED)[/bold red]"):
+                    console.print("[dim]Execution cancelled for safety.[/dim]")
+                    
+                    script_path = os.path.join(CACHE_DIR, "remediation.ps1")
+                    with open(script_path, "w") as f:
+                        f.write(fix_script)
+                    console.print(f"\n[cyan]Script saved to:[/cyan] [dim]{script_path}[/dim]")
+                    
+                    if Confirm.ask("\nOpen detailed report?"):
+                        webbrowser.open(f"file://{report_file}")
+                    return
+            
+            # Step 5: Execute with Sandbox Monitoring
+            console.print("\n[bold green]═══ EXECUTING REMEDIATION ═══[/bold green]")
+            console.print("[cyan]→ Running in monitored sandbox environment...[/cyan]\n")
+            
+            executor = SandboxExecutor(fix_script)
+            success, stdout, stderr = executor.execute_with_monitoring(timeout=300)
+            
+            if success:
+                console.print("\n[bold green]✔ REMEDIATION COMPLETED SUCCESSFULLY[/bold green]")
+                if stdout:
+                    console.print("\n[dim]Output:[/dim]")
+                    console.print(Panel(stdout, style="green"))
+            else:
+                console.print("\n[bold red]✘ REMEDIATION FAILED[/bold red]")
+                if stderr:
+                    console.print("\n[red]Error:[/red]")
+                    console.print(Panel(stderr, style="red"))
+                
+                # Offer rollback
+                if restore_success:
+                    console.print("\n[yellow]A restore point was created before execution.[/yellow]")
+                    if Confirm.ask("[bold yellow]Restore system to previous state?[/bold yellow]"):
+                        console.print("[cyan]Please use Windows System Restore manually:[/cyan]")
+                        console.print("[dim]  1. Open Control Panel > System > System Protection[/dim]")
+                        console.print("[dim]  2. Click 'System Restore'[/dim]")
+                        console.print(f"[dim]  3. Select restore point: {restore_msg}[/dim]")
+            
+            # Show execution log
+            execution_log = SandboxExecutor.get_last_execution_log()
+            if execution_log:
+                console.print("\n[cyan]Execution log available[/cyan]")
+                if Confirm.ask("View execution log?"):
+                    console.print(Panel(execution_log, title="Execution Log", style="dim"))
+            
+            if Confirm.ask("\nOpen detailed diagnostic report?"):
+                webbrowser.open(f"file://{report_file}")
     except Exception as e:
         console.print(f"[bold red]SYSTEM ERROR:[/bold red] {e}")
         input("Press Enter to exit...")
