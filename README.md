@@ -284,6 +284,8 @@ This project is licensed under the **GNU General Public License v3.0** - see the
 ## Author
 
 **Knight**  
+Electrotechnics Engineering Student  
+Akli Mohand Oulhadj University, Bouira, Algeria  
 Email: hossam.guettaf@proton.me  
 GitHub: [@Guettaf-hossam](https://github.com/Guettaf-hossam)
 
@@ -302,5 +304,5 @@ GitHub: [@Guettaf-hossam](https://github.com/Guettaf-hossam)
 </p>
 
 <p align="center">
-  Made with dedication by Knight | University of Bouira, Algeria
+  Made with dedication by Knight | Electrotechnics Engineering, Akli Mohand Oulhadj University
 </p>
