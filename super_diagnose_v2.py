@@ -482,12 +482,18 @@ def main():
     OUTPUT STRUCTURE:
     
     [ANALYSIS_START]
-    <h3>Security & Process Audit</h3>
-    ...
-    <h3>System Diagnosis</h3>
-    ...
-    <h3>Recommendations</h3>
-    ...
+    <h3>Maintenance Report: Operations Completed</h3>
+    <p>List completed actions using [FIXED], [CLEANED], [DISABLED] tags in past tense.</p>
+    <ul>
+        <li>[FIXED] Disabled crashing Intel service (esrv_svc)</li>
+        <li>[CLEANED] Removed temporary files from system cache</li>
+    </ul>
+    
+    <h3>Manual Attention Required</h3>
+    <p>Items that require user intervention or cannot be automated.</p>
+    <ul>
+        <li>Update graphics driver manually from manufacturer website</li>
+    </ul>
     [ANALYSIS_END]
     
     [FIX_START]
@@ -552,9 +558,8 @@ def main():
             fix_script = raw_response.split("[FIX_START]")[1].split("[FIX_END]")[0].strip()
             fix_script = fix_script.replace("```powershell", "").replace("```", "").strip()
             
-            import re
-            fix_script = re.sub(r'\$(\w+):', r'$(\1):', fix_script)
-            fix_script = re.sub(r'\$_([:\.])', r'$($_)\1', fix_script)
+            fix_script = re.sub(r'\$(?!env\b)(\w+):', r'$(\1):', fix_script)
+            fix_script = re.sub(r'\$_([:])', r'$($_)\1', fix_script)
         
         html_content = generate_super_html(collected_data, ai_analysis, user_problem)
         
@@ -590,15 +595,17 @@ def main():
                         console.print("\n[bold green]REMEDIATION SUCCESSFUL[/bold green]")
                     else:
                         console.print(f"\n[bold red]REMEDIATION COMPLETED WITH WARNINGS (Code {p.returncode})[/bold red]")
-                        
+                         
                 except Exception as e:
                      console.print(f"[bold red]Execution Error:[/bold red] {e}")
+                
+                if Confirm.ask("\nOpen detailed report?"):
+                    webbrowser.open(f"file://{report_file}")
             else:
                 console.print("[dim]Script execution skipped.[/dim]")
-
-        if Confirm.ask("\nOpen detailed report?"):
-            webbrowser.open(f"file://{report_file}")
-            
+                
+                if Confirm.ask("\nOpen detailed report?"):
+                    webbrowser.open(f"file://{report_file}")
     except Exception as e:
         console.print(f"[bold red]SYSTEM ERROR:[/bold red] {e}")
         input("Press Enter to exit...")
