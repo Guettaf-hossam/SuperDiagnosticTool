@@ -102,18 +102,109 @@ class SystemBrain:
 
 
 def scan_context_system():
-    return "System Core", {
-        "OS": f"{platform.system()} {platform.release()} {platform.version()}",
-        "Boot Time": datetime.fromtimestamp(psutil.boot_time()).strftime("%Y-%m-%d %H:%M:%S"),
-        "CPU Context": f"{psutil.cpu_count(logical=False)} Cores / {psutil.cpu_count(logical=True)} Threads",
-        "Battery": SystemBrain.run_powershell("Get-CimInstance -ClassName Win32_Battery | Select-Object -Property EstimatedChargeRemaining, BatteryStatus")
-    }
+    """Scan core system information and hardware context."""
+    system_data = {}
+    
+    try:
+        system_data["OS"] = f"{platform.system()} {platform.release()} {platform.version()}"
+    except:
+        system_data["OS"] = "Unknown"
+    
+    try:
+        boot_time = datetime.fromtimestamp(psutil.boot_time()).strftime("%Y-%m-%d %H:%M:%S")
+        system_data["Boot Time"] = boot_time
+    except:
+        system_data["Boot Time"] = "N/A"
+    
+    try:
+        physical_cores = psutil.cpu_count(logical=False) or "N/A"
+        logical_cores = psutil.cpu_count(logical=True) or "N/A"
+        system_data["CPU Context"] = f"{physical_cores} Cores / {logical_cores} Threads"
+    except:
+        system_data["CPU Context"] = "N/A"
+    
+    try:
+        battery_info = SystemBrain.run_powershell("Get-CimInstance -ClassName Win32_Battery | Select-Object -Property EstimatedChargeRemaining, BatteryStatus")
+        system_data["Battery"] = battery_info if battery_info and battery_info != "N/A" else "No Battery Detected"
+    except:
+        system_data["Battery"] = "No Battery Detected"
+    
+    return "System Core", system_data
 
 def scan_performance():
+    """Scan system performance metrics including CPU and memory usage."""
+    
+    cpu_data = {}
+    mem_data = {}
+    
+    try:
+        cpu_percent_overall = psutil.cpu_percent(interval=0.5)
+        cpu_data["Overall Usage"] = f"{cpu_percent_overall}%"
+    except:
+        cpu_data["Overall Usage"] = "N/A"
+    
+    try:
+        cpu_percent_per_core = psutil.cpu_percent(interval=0.3, percpu=True)
+        core_count = len(cpu_percent_per_core)
+        
+        if core_count <= 8:
+            cpu_data["Per-Core Usage"] = cpu_percent_per_core
+        else:
+            avg_usage = sum(cpu_percent_per_core) / core_count
+            cpu_data["Average Core Usage"] = f"{avg_usage:.1f}%"
+            cpu_data["Core Count"] = f"{core_count} cores"
+    except:
+        cpu_data["Per-Core Usage"] = "N/A"
+    
+    try:
+        cpu_count_physical = psutil.cpu_count(logical=False) or "N/A"
+        cpu_count_logical = psutil.cpu_count(logical=True) or "N/A"
+        cpu_data["Cores"] = f"{cpu_count_physical} Physical / {cpu_count_logical} Logical"
+    except:
+        cpu_data["Cores"] = "N/A"
+    
+    try:
+        cpu_freq = psutil.cpu_freq()
+        if cpu_freq:
+            cpu_data["Frequency"] = f"Current: {cpu_freq.current:.0f} MHz | Min: {cpu_freq.min:.0f} MHz | Max: {cpu_freq.max:.0f} MHz"
+        else:
+            cpu_data["Frequency"] = "Not Supported"
+    except:
+        cpu_data["Frequency"] = "Not Supported"
+    
+    try:
+        mem = psutil.virtual_memory()
+        mem_data["Total"] = f"{mem.total / (1024**3):.1f} GB"
+        mem_data["Available"] = f"{mem.available / (1024**3):.1f} GB"
+        mem_data["Used"] = f"{mem.used / (1024**3):.1f} GB ({mem.percent}%)"
+    except:
+        mem_data["Memory"] = "N/A"
+    
+    try:
+        swap = psutil.swap_memory()
+        if swap.total > 0:
+            mem_data["Swap Used"] = f"{swap.used / (1024**3):.1f} GB ({swap.percent}%)"
+        else:
+            mem_data["Swap Used"] = "No Swap Configured"
+    except:
+        mem_data["Swap Used"] = "N/A"
+    
+    top_processes = []
+    try:
+        top_processes = [
+            p.info for p in sorted(
+                psutil.process_iter(['name', 'memory_percent']), 
+                key=lambda p: p.info.get('memory_percent', 0), 
+                reverse=True
+            )[:5]
+        ]
+    except:
+        top_processes = [{"name": "Unable to retrieve", "memory_percent": 0}]
+    
     return "Performance Metrics", {
-        "CPU Load": psutil.cpu_percent(interval=1, percpu=True),
-        "RAM Usage": f"{psutil.virtual_memory().percent}% used of {round(psutil.virtual_memory().total / (1024**3), 1)} GB",
-        "Top RAM Hogs": [p.info for p in sorted(psutil.process_iter(['name', 'memory_percent']), key=lambda p: p.info['memory_percent'], reverse=True)[:5]]
+        "CPU": cpu_data,
+        "Memory": mem_data,
+        "Top RAM Consumers": top_processes
     }
 
 def scan_network_deep():
