@@ -33,9 +33,9 @@ refresh_icon_cache.bat
 Thumbs.db
 desktop.ini
 
-# API Keys (security)
+# API Keys (SECURITY - NEVER COMMIT)
 *.key
-!gemini.key
+gemini.key
 
 # Reports (keep folder, ignore contents)
 AI_Reports/*.html
