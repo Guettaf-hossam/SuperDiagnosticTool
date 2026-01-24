@@ -161,26 +161,26 @@ SuperDiagnosticTool.exe
 
 ---
 
-## Architecture Highlights
+## Technical Details
 
-### Production-Ready Code Quality
-- **Clean Code Principles:** Minimal comments, professional docstrings, human-readable variable names
-- **No Robotic Headers:** Removed AI-generated ASCII art and excessive section markers
-- **Safety Checks:** Every hardware query wrapped in try-except with graceful fallbacks
-- **Modular Design:** Separate functions for each diagnostic category
+### Code Architecture
+- Modular design with separate functions for each diagnostic category
+- Comprehensive error handling with try-except blocks
+- Hardware-agnostic queries with graceful fallbacks
+- Professional docstrings and clear variable naming
 
 ### PowerShell Script Generation
-- **Admin Privilege Check:** Scripts verify elevation before executing
-- **Variable Escaping:** Regex sanitization prevents syntax errors (`$path:` → `$($path):`)
-- **Environment Variable Preservation:** `$env:TEMP` and `$env:PATH` remain untouched
-- **Intel Service Handling:** Safe stop/disable for problematic services (esrv_svc, SurSvc, esrv)
-- **Error Resilience:** All operations use `-ErrorAction SilentlyContinue`
+- Admin privilege verification before execution
+- Regex-based variable escaping to prevent syntax errors
+- Environment variables (`$env:TEMP`, `$env:PATH`) preserved correctly
+- Safe service management with existence checks
+- Error suppression using `-ErrorAction SilentlyContinue`
 
-### AI Prompt Engineering
-- **Role-Based Prompting:** AI acts as "Senior Windows Systems Engineer & Security Analyst"
-- **Structured Output:** Enforces `[ANALYSIS_START]` and `[FIX_START]` delimiters for parsing
-- **Post-Fix Tone:** Reports use past-tense language to describe completed actions
-- **Example Templates:** Provides PowerShell best practices directly in the prompt
+### Gemini AI Integration
+- Structured prompts for consistent output parsing
+- Delimited sections (`[ANALYSIS_START]`, `[FIX_START]`) for reliable extraction
+- Context-aware analysis based on system telemetry
+- Past-tense reporting for completed remediation actions
 
 ---
 
