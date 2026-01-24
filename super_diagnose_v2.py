@@ -20,7 +20,14 @@ from rich.layout import Layout
 from rich.table import Table
 from rich import box
 
-from src.safety import RestorePointManager, ScriptValidator, SandboxExecutor, DryRunSimulator
+from src.safety import (
+    RestorePointManager, 
+    ScriptValidator, 
+    SandboxExecutor, 
+    DryRunSimulator,
+    EnhancedMonitoring,
+    KnowledgeBase
+)
 
 CACHE_DIR = os.path.join(os.getcwd(), "AI_Reports")
 GEMINI_MODEL = "gemini-2.5-flash" 
@@ -571,6 +578,21 @@ def main():
             
             console.print("\n[bold cyan]═══ SAFETY VALIDATION ═══[/bold cyan]")
             
+            # Step 0: Check Knowledge Base for known solutions
+            console.print("[cyan]→ Checking knowledge base...[/cyan]")
+            known_solution = KnowledgeBase.find_matching_solution(user_problem, telemetry)
+            
+            if known_solution:
+                console.print(f"[green]✔ Found known solution: {known_solution['description']}[/green]")
+                console.print(f"[yellow]  Success rate: {known_solution['success_rate']*100:.0f}%[/yellow]")
+                console.print(f"[yellow]  Risk level: {known_solution['risk_level']}[/yellow]\n")
+                
+                # Validate AI solution against known solution
+                is_valid, reason, _ = KnowledgeBase.validate_ai_solution(fix_script, user_problem)
+                console.print(f"[cyan]AI Solution Validation:[/cyan] {reason}\n")
+            else:
+                console.print("[yellow]⚠ No known solution found - AI-generated solution will be used[/yellow]\n")
+            
             # Step 1: Dry-Run Simulation
             console.print("[cyan]→ Running dry-run simulation...[/cyan]")
             simulation = DryRunSimulator.simulate(fix_script)
@@ -656,28 +678,65 @@ def main():
                         webbrowser.open(f"file://{report_file}")
                     return
             
-            # Step 5: Execute with Sandbox Monitoring
+            # Step 5: Execute with Enhanced Monitoring
             console.print("\n[bold green]═══ EXECUTING REMEDIATION ═══[/bold green]")
+            console.print("[cyan]→ Taking pre-execution snapshot...[/cyan]")
+            
+            # Initialize enhanced monitoring
+            monitor = EnhancedMonitoring()
+            pre_snapshot = monitor.take_snapshot()
+            console.print("[green]✔ Snapshot captured[/green]\n")
+            
             console.print("[cyan]→ Running in monitored sandbox environment...[/cyan]\n")
             
             executor = SandboxExecutor(fix_script)
             success, stdout, stderr = executor.execute_with_monitoring(timeout=300)
             
+            # Take post-execution snapshot
+            console.print("\n[cyan]→ Taking post-execution snapshot...[/cyan]")
+            post_snapshot = monitor.take_snapshot()
+            
+            # Detect changes
+            changes = monitor.detect_changes(pre_snapshot, post_snapshot)
+            console.print(f"[yellow]Detected {len(changes)} system change(s)[/yellow]\n")
+            
             if success:
-                console.print("\n[bold green]✔ REMEDIATION COMPLETED SUCCESSFULLY[/bold green]")
+                console.print("[bold green]✔ REMEDIATION COMPLETED SUCCESSFULLY[/bold green]")
                 if stdout:
                     console.print("\n[dim]Output:[/dim]")
                     console.print(Panel(stdout, style="green"))
+                
+                # Show detected changes
+                if changes:
+                    console.print("\n[cyan]System Changes Detected:[/cyan]")
+                    changes_report = monitor.format_changes_report(changes)
+                    console.print(Panel(changes_report, style="yellow", title="Changes Made"))
             else:
                 console.print("\n[bold red]✘ REMEDIATION FAILED[/bold red]")
                 if stderr:
                     console.print("\n[red]Error:[/red]")
                     console.print(Panel(stderr, style="red"))
                 
-                # Offer rollback
-                if restore_success:
-                    console.print("\n[yellow]A restore point was created before execution.[/yellow]")
-                    if Confirm.ask("[bold yellow]Restore system to previous state?[/bold yellow]"):
+                
+                # Offer rollback options
+                if restore_success or changes:
+                    console.print("\n[yellow]Rollback Options Available:[/yellow]")
+                    
+                    if restore_success:
+                        console.print("[yellow]  1. System Restore Point (full system rollback)[/yellow]")
+                    
+                    if changes:
+                        console.print("[yellow]  2. Selective Rollback (undo detected changes only)[/yellow]")
+                        
+                        if Confirm.ask("[bold yellow]Generate selective rollback script?[/bold yellow]"):
+                            rollback_script = monitor.generate_rollback_script(changes)
+                            rollback_path = os.path.join(CACHE_DIR, "rollback.ps1")
+                            with open(rollback_path, "w") as f:
+                                f.write(rollback_script)
+                            console.print(f"[green]✔ Rollback script saved to: {rollback_path}[/green]")
+                            console.print("[dim]Review and execute manually if needed[/dim]")
+                    
+                    if restore_success and Confirm.ask("\n[bold yellow]Use System Restore Point?[/bold yellow]"):
                         console.print("[cyan]Please use Windows System Restore manually:[/cyan]")
                         console.print("[dim]  1. Open Control Panel > System > System Protection[/dim]")
                         console.print("[dim]  2. Click 'System Restore'[/dim]")
