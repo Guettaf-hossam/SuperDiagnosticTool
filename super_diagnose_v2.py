@@ -469,8 +469,15 @@ def main():
     2. AUDIT: Review process list for anomalies (resource leaks, unknown binaries, potential malware).
     3. REPORT: Generate a technical diagnosis in HTML format.
     4. REMEDIATION: Generate a PowerShell script to resolve identified issues.
-       - Constraint: Operations must be non-destructive (no data loss).
-       - Constraint: Script must use 'Write-Host' for logging.
+       
+       POWERSHELL SCRIPT REQUIREMENTS:
+       - Start with admin privilege check (exit if not admin)
+       - Use 'Write-Host' for all logging with color coding
+       - When using variables followed by colons, wrap in $(): e.g., "$($path):" not "$path:"
+       - For Intel services (esrv_svc, SurSvc, esrv): Check existence with Get-Service -ErrorAction SilentlyContinue first
+       - All service operations must use -ErrorAction SilentlyContinue
+       - Operations must be non-destructive (no data loss)
+       - Include Try/Catch blocks for critical operations
     
     OUTPUT STRUCTURE:
     
@@ -484,9 +491,29 @@ def main():
     [ANALYSIS_END]
     
     [FIX_START]
-    # Remediation Script
-    Write-Host "Initializing remediation protocols..."
-    # ...
+    # Admin privilege check
+    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {{
+        Write-Host "ERROR: This script requires Administrator privileges" -ForegroundColor Red
+        exit 1
+    }}
+    
+    Write-Host "Initializing remediation protocols..." -ForegroundColor Cyan
+    
+    # Example: Intel service handling
+    $intelServices = @('esrv_svc', 'SurSvc', 'esrv')
+    foreach ($svc in $intelServices) {{
+        $service = Get-Service -Name $svc -ErrorAction SilentlyContinue
+        if ($service) {{
+            Write-Host "Found Intel service: $($svc)" -ForegroundColor Yellow
+            Try {{
+                Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue
+                Set-Service -Name $svc -StartupType Disabled -ErrorAction SilentlyContinue
+                Write-Host "Disabled: $($svc)" -ForegroundColor Green
+            }} Catch {{
+                Write-Host "Could not modify: $($svc)" -ForegroundColor Red
+            }}
+        }}
+    }}
     [FIX_END]
     
     USER COMPLAINT: "{user_problem}"
@@ -524,6 +551,10 @@ def main():
         if "[FIX_START]" in raw_response:
             fix_script = raw_response.split("[FIX_START]")[1].split("[FIX_END]")[0].strip()
             fix_script = fix_script.replace("```powershell", "").replace("```", "").strip()
+            
+            import re
+            fix_script = re.sub(r'\$(\w+):', r'$(\1):', fix_script)
+            fix_script = re.sub(r'\$_([:\.])', r'$($_)\1', fix_script)
         
         html_content = generate_super_html(collected_data, ai_analysis, user_problem)
         
