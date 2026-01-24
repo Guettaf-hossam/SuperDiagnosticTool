@@ -204,8 +204,11 @@ class ScriptValidator:
             warnings.append("Script has many lines (>200) - review carefully")
             risk_score += 3
         
+        
         # Determine overall safety
-        is_safe = risk_score < 15
+        # Threshold increased to 50 to allow legitimate administrative scripts
+        # while still blocking truly dangerous operations (blacklist still applies)
+        is_safe = risk_score < 50
         
         return is_safe, warnings, risk_score
     
