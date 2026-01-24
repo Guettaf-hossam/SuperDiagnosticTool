@@ -580,7 +580,7 @@ def main():
             
             # Step 0: Check Knowledge Base for known solutions
             console.print("[cyan]→ Checking knowledge base...[/cyan]")
-            known_solution = KnowledgeBase.find_matching_solution(user_problem, telemetry)
+            known_solution = KnowledgeBase.find_matching_solution(user_problem, collected_data)
             
             if known_solution:
                 console.print(f"[green]✔ Found known solution: {known_solution['description']}[/green]")
