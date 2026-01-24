@@ -58,45 +58,52 @@ class SystemBrain:
             return "N/A"
 
     @staticmethod
+    def validate_key(key):
+        if not key: return False
+        clean_key = key.strip()
+        if len(clean_key) < 30: return False
+        return True
+
+    @staticmethod
     def get_api_key():
         key = os.getenv("GEMINI_API_KEY")
-        if key: return key
+        if key: return key.strip()
         
         key_file = "gemini.key"
         if os.path.exists(key_file):
-            with open(key_file, "r") as f: 
-                key = f.read().strip()
-                # Clean any potential invisible chars (like BOM) or whitespace
-                key = re.sub(r'[^a-zA-Z0-9\-\._]', '', key).strip()
-                
-                # Basic validation: API keys are usually long (~39 chars)
-                if key and len(key) > 30: 
-                    return key
-            
-            # If we are here, key was invalid or short
-            console.print("[bold red]⚠ Saved API Key is invalid or empty. Please enter it again.[/bold red]")
+            try:
+                with open(key_file, "r") as f: 
+                    saved_key = f.read().strip()
+                saved_key = re.sub(r'[^a-zA-Z0-9\-\._]', '', saved_key).strip()
+                if SystemBrain.validate_key(saved_key):
+                    return saved_key
+            except: pass
 
         console.clear()
         console.print(Panel.fit("[bold yellow]⚠ Access Key Required[/bold yellow]", border_style="red"))
-        console.print("[dim]Note: Input will be hidden. Right-click to paste.[/dim]")
-        key = Prompt.ask("[bold cyan]Enter Google Gemini API Key[/bold cyan]", password=True)
+        console.print("[dim]Key input is visible to support Ctrl+V pasting.[/dim]")
         
-        
-        # SANITIZE KEY
-        # Allow only alphanumeric and common symbols used in keys (-, _, .)
-        key = re.sub(r'[^a-zA-Z0-9\-\._]', '', key).strip()
-        
-        if len(key) < 30:
-             console.print("[bold red]Error: Key looks too short. Please copy the full key.[/bold red]")
-        with open(key_file, "w") as f: f.write(key)
-        return key
+        while True:
+            console.print("\n[bold cyan]Enter Google Gemini API Key:[/bold cyan]")
+            try:
+                raw_input = input("> ").strip()
+            except:
+                return ""
+            
+            clean_key = re.sub(r'[^a-zA-Z0-9\-\._]', '', raw_input).strip()
+            
+            if SystemBrain.validate_key(clean_key):
+                with open(key_file, "w") as f: f.write(clean_key)
+                console.print("[bold green]✔ Key accepted![/bold green]")
+                return clean_key
+            else:
+                console.print(f"[bold red]✘ Invalid Key ({len(clean_key)} chars). Try again.[/bold red]")
 
     @staticmethod
     def reset_api_key():
-        if os.path.exists("gemini.key"):
-            os.remove("gemini.key")
+        if os.path.exists("gemini.key"): os.remove("gemini.key")
         os.environ.pop("GEMINI_API_KEY", None)
-        console.print("[bold green]API Key has been reset![/bold green]")
+        console.print("[bold green]API Key reset![/bold green]")
         return SystemBrain.get_api_key()
 
 # ============ SCANNING TASKS ============
