@@ -26,22 +26,60 @@ class ScriptValidator:
     
     # Level 2: Whitelist (only these commands are considered safe)
     WHITELIST_COMMANDS = [
+        # PowerShell Core Keywords & Control Structures
+        'if',
+        'else',
+        'elseif',
+        'switch',
+        'foreach',
+        'for',
+        'while',
+        'do',
+        'function',
+        'param',
+        'return',
+        'exit',
+        'break',
+        'continue',
+        'Try',
+        'Catch',
+        'Finally',
+        'throw',
+        
+        # Service Management
         'Get-Service',
         'Stop-Service',
         'Start-Service',
         'Set-Service',
         'Restart-Service',
+        
+        # Process Management
         'Get-Process',
         'Stop-Process',
+        
+        # Network Commands
         'Clear-DnsClientCache',
         'ipconfig',
         'netsh',
+        
+        # System Maintenance
         'sfc',
         'DISM',
+        'Dism',
         'chkdsk',
+        'Optimize-Volume',
+        'Clear-RecycleBin',
+        
+        # Output Commands
         'Write-Host',
         'Write-Output',
         'Write-Error',
+        'Write-Warning',
+        'Write-Verbose',
+        'Out-Null',
+        'Out-Host',
+        
+        # File/Registry Operations
         'Get-Item',
         'Get-ItemProperty',
         'Set-ItemProperty',
@@ -52,11 +90,23 @@ class ScriptValidator:
         'Set-Content',
         'Clear-Content',
         'Get-ChildItem',
+        'Remove-Item',
+        'Join-Path',
+        
+        # WMI/CIM
         'Get-WmiObject',
         'Get-CimInstance',
+        'Get-Volume',
+        'Get-PhysicalDisk',
+        
+        # Utility Commands
         'Invoke-Expression',
         'Start-Sleep',
         'Wait-Process',
+        'Where-Object',
+        'ForEach-Object',
+        'Select-Object',
+        'Measure-Object',
     ]
     
     # Level 3: Risk scoring patterns
