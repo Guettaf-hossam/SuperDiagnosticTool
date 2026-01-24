@@ -10,16 +10,14 @@ from datetime import datetime
 import ctypes
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# --- Auto-Install Dependencies ---
 REQUIRED_LIBS = ["psutil", "google-generativeai", "rich"]
+
 def install_libs():
     for lib in REQUIRED_LIBS:
         try:
-            # Handle package name differences (google-generativeai is imported as google.generativeai)
             import_name = "google.generativeai" if lib == "google-generativeai" else lib
             if lib == "rich": import_name = "rich"
             if lib == "psutil": import_name = "psutil"
-            
             __import__(import_name)
         except ImportError:
             print(f"Installing missing component: {lib}...")
@@ -27,7 +25,6 @@ def install_libs():
 
 install_libs()
 
-# Imports
 import psutil
 import google.generativeai as genai
 from rich.console import Console
@@ -38,20 +35,17 @@ from rich.layout import Layout
 from rich.table import Table
 from rich import box
 
-# ============ CONFIGURATION ============
 CACHE_DIR = os.path.join(os.getcwd(), "AI_Reports")
 GEMINI_MODEL = "gemini-2.5-flash" 
 console = Console()
 
-# ============ CORE ENGINE ============
-
 class SystemBrain:
+    """Core system utilities for PowerShell execution and API key management."""
+    
     @staticmethod
     def run_powershell(cmd):
         try:
-            # Using specific encoding handling to avoid errors
-            full_cmd = f'{cmd}'
-            result = subprocess.run(["powershell", "-Command", full_cmd], 
+            result = subprocess.run(["powershell", "-Command", cmd], 
                                   capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
             return result.stdout.strip()
         except Exception:
@@ -106,7 +100,6 @@ class SystemBrain:
         console.print("[bold green]API Key reset![/bold green]")
         return SystemBrain.get_api_key()
 
-# ============ SCANNING TASKS ============
 
 def scan_context_system():
     return "System Core", {
@@ -139,7 +132,6 @@ def scan_security_integrity():
     }
 
 def scan_event_logs():
-    # Fetching critical errors
     cmd = "Get-WinEvent -FilterHashtable @{LogName='System';Level=1,2;StartTime=(Get-Date).AddHours(-24)} -MaxEvents 15 -ErrorAction SilentlyContinue | Select-Object TimeCreated, Message"
     return "Critical Events", SystemBrain.run_powershell(cmd)
 
@@ -167,44 +159,26 @@ def scan_startup_apps():
     }
 
 def scan_suspicious_processes():
-    """
-    Scans for processes that might be suspicious based on:
-    1. High Resource Usage (Potential Miners)
-    2. Weird locations (AppData, Temp) - partially covered by checking path
-    3. Missing signatures or weird names (left to AI to judge name)
-    """
+    """Scan for potentially suspicious processes based on resource usage and location."""
     suspicious_list = []
     
-    # Whitelist of trusted apps to ignore to prevent false positives
-    # Antigravity (The Agent), SuperDiagnosticTool (Self), GitHub related tools
     WHITELIST = [
         "Antigravity.exe", "SuperDiagnosticTool.exe", "super_diagnose_v2.exe", 
         "python.exe", "git.exe", "GitHubDesktop.exe", "ssh-agent.exe"
     ]
-    
-    # We will prioritize:
-    # - High CPU > 1%
-    # - High Memory > 100MB
-    # - Processes running from user folders (often malware location)
     
     for proc in psutil.process_iter(['pid', 'name', 'exe', 'username', 'cpu_percent', 'memory_info']):
         try:
             pinfo = proc.info
             name = pinfo['name']
             
-            # Skip Whitelisted Apps
             if name in WHITELIST:
                 continue
                 
-            # Filter 1: Resources
             is_resource_heavy = (pinfo['cpu_percent'] > 1.0) or (pinfo['memory_info'].rss > 100 * 1024 * 1024)
-            
-            # Filter 2: Location (Naive check)
             exe_path = pinfo['exe'] or ""
             is_user_path = "Users" in exe_path and "Windows" not in exe_path
             
-            # We want to capture things that are EITHER heavy OR in user paths OR just random sample?
-            # Let's just grab the heavy ones and user-space ones to save tokens.
             if is_resource_heavy or is_user_path:
                 suspicious_list.append({
                     "Name": name,
@@ -217,14 +191,13 @@ def scan_suspicious_processes():
                 
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
-            
-    # Sort by CPU usage and take top 30 to respect context window
+    
     suspicious_list.sort(key=lambda x: x['CPU%'], reverse=True)
     return "Suspicious Process Audit", suspicious_list[:30]
 
-# ============ REPORT GENERATOR ============
 
 def generate_super_html(data, ai_analysis, user_problem):
+    """Generate a professional HTML diagnostic report with AI analysis."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     
     css = """
@@ -312,18 +285,17 @@ def generate_super_html(data, ai_analysis, user_problem):
     """
     return html
 
-# ============ MAIN EXECUTION FLOW ============
 
 def is_admin():
+    """Check if the script is running with administrator privileges."""
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except:
         return False
 
 def main():
-    # 1. Admin Check & Auto-Elevation
+    """Main execution flow for the diagnostic tool."""
     if not is_admin():
-        # Re-run the program with admin rights
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
         sys.exit()
 
@@ -342,7 +314,6 @@ def main():
     console.print("\n[bold green]?[/bold green] [bold white]Describe the problem you are facing.[/bold white]")
     user_problem = Prompt.ask("[bold cyan]>[/bold cyan] ", default="General Health Check")
 
-    # 2. Scan Modes
     console.print("\n[bold yellow]Select Scan Mode:[/bold yellow]")
     console.print("[1] [bold green]Quick Scan[/bold green] (CPU, RAM, Basic Info)")
     console.print("[2] [bold red]Deep Scan[/bold red] (Full System, Network, Logs, Security, Bluetooth)")
@@ -353,7 +324,6 @@ def main():
     if mode == "4":
         api_key = SystemBrain.reset_api_key()
         console.print("\n[bold green]Key Updated Successfully![/bold green]")
-        # Ask for mode again or just restart logic? Simplest is to ask for mode again
         console.print("\n[bold yellow]Select Scan Mode:[/bold yellow]")
         console.print("[1] [bold green]Quick Scan[/bold green] (CPU, RAM, Basic Info)")
         console.print("[2] [bold red]Deep Scan[/bold red] (Full System, Network, Logs, Security, Bluetooth)")
@@ -395,6 +365,7 @@ def main():
 
     console.print(Panel("[bold yellow]Transmitting telemetry to Neural Core...[/bold yellow]", border_style="yellow"))
     
+
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(GEMINI_MODEL)
     
@@ -434,7 +405,6 @@ def main():
     
     try:
         with console.status("Processing telemetry logic...", spinner="dots"):
-            # Robust API call with exponential backoff
             max_retries = 3
             raw_response = ""
             for attempt in range(max_retries):
@@ -452,7 +422,6 @@ def main():
                     raw_response = f"[ANALYSIS_START]<h3>Analysis Unavailable</h3><p>API Error: {str(e)}</p>[ANALYSIS_END]"
                     break
         
-        # --- PARSE RESPONSE ---
         ai_analysis = ""
         fix_script = ""
         
@@ -464,8 +433,7 @@ def main():
         if "[FIX_START]" in raw_response:
             fix_script = raw_response.split("[FIX_START]")[1].split("[FIX_END]")[0].strip()
             fix_script = fix_script.replace("```powershell", "").replace("```", "").strip()
-
-        # --- GENERATE REPORT ---
+        
         html_content = generate_super_html(collected_data, ai_analysis, user_problem)
         
         if not os.path.exists(CACHE_DIR): os.makedirs(CACHE_DIR)
@@ -476,7 +444,6 @@ def main():
             
         console.print(Panel(f"[bold green]ANALYSIS COMPLETE[/bold green]\nReport: [underline]{report_file}[/underline]", border_style="green"))
         
-        # --- REMEDIATION MODULE ---
         if fix_script and len(fix_script) > 10:
             console.print("\n")
             console.print(Panel.fit("[bold magenta]AUTOMATED REMEDIATION SYSTEM[/bold magenta]", border_style="magenta"))
