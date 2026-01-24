@@ -304,5 +304,5 @@ GitHub: [@Guettaf-hossam](https://github.com/Guettaf-hossam)
 </p>
 
 <p align="center">
-  Made with dedication by Knight | Electrotechnics Engineering, Akli Mohand Oulhadj University
+  Made with dedication by Knight | Akli Mohand Oulhadj University
 </p>
