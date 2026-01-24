@@ -1,9 +1,42 @@
-/ai_reports
-/AI_Reports
-/build
-/dist
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# PyInstaller
+build/
+dist/
 *.spec
-gemini.key
-Diagnosis_*.html
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Icon conversion files
+convert_icon.py
+icon.png
+
+# Build scripts (keep only the final one)
+build_exe.py
+build_exe_enhanced.py
+refresh_icon_cache.bat
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# API Keys (security)
+*.key
+!gemini.key
+
+# Reports (keep folder, ignore contents)
+AI_Reports/*.html
+AI_Reports/*.ps1

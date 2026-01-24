@@ -1,11 +1,12 @@
 """
-Build script to create EXE file from ai_diagnostic.py
-Run: python build_exe.py
+Final production build script for SuperDiagnosticTool
+Run: python build.py
 """
 
 import subprocess
 import sys
 import os
+import shutil
 
 def run_command(cmd):
     """Run a command and return success status."""
@@ -17,29 +18,25 @@ def run_command(cmd):
 
 def main():
     print("=" * 60)
-    print("Building Windows Diagnostic Tool (v1.0)")
+    print("SuperDiagnosticTool - Production Build")
     print("=" * 60)
     print()
     
-    # Check if PyInstaller is installed
-    print("[1/4] Checking PyInstaller...")
-    success, output = run_command("pip show pyinstaller")
+    # Check dependencies
+    print("[1/4] Checking dependencies...")
+    success, _ = run_command("pip show pyinstaller")
     if not success:
         print("Installing PyInstaller...")
-        success, output = run_command("pip install pyinstaller")
-        if not success:
-            print(f"ERROR: Failed to install PyInstaller: {output}")
-            return False
+        run_command("pip install pyinstaller")
     
-    print("[2/4] Building EXE file...")
-    
-    # PyInstaller command
-    # PyInstaller command
+    # Build
+    print("[2/4] Building executable...")
     cmd = [
         f'"{sys.executable}"', "-m", "PyInstaller",
         "--onefile",
         "--noconfirm",
         "--name", "SuperDiagnosticTool",
+        "--icon", "icon.ico",
         "--hidden-import=google.generativeai",
         "--hidden-import=psutil",
         "--hidden-import=rich",
@@ -50,12 +47,11 @@ def main():
     
     success, output = run_command(" ".join(cmd))
     if not success:
-        print(f"ERROR: Build failed: {output}")
+        print(f"ERROR: {output}")
         return False
     
-    print("[3/4] Cleaning up build files...")
-    # Clean up build directory and spec file
-    import shutil
+    # Cleanup
+    print("[3/4] Cleaning up...")
     if os.path.exists("build"):
         shutil.rmtree("build")
     if os.path.exists("SuperDiagnosticTool.spec"):
@@ -64,30 +60,15 @@ def main():
     print("[4/4] Done!")
     print()
     print("=" * 60)
-    print("SUCCESS!")
+    print("SUCCESS! EXE created: dist\\SuperDiagnosticTool.exe")
     print("=" * 60)
-    print()
-    print("Your EXE file is located in: dist\\SuperDiagnosticTool.exe")
-    print()
-    print("You can now:")
-    print("  1. Copy dist\\SuperDiagnosticTool.exe to any folder")
-    print("  2. Run it directly (no Python needed!)")
-    print("  3. Share it with others")
-    print()
     
     return True
 
 if __name__ == "__main__":
     try:
         success = main()
-        if not success:
-            sys.exit(1)
-    except KeyboardInterrupt:
-        print("\n\nBuild cancelled by user.")
-        sys.exit(1)
+        sys.exit(0 if success else 1)
     except Exception as e:
-        print(f"\nERROR: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"ERROR: {e}")
         sys.exit(1)
-
