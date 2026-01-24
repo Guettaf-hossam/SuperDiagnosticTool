@@ -4,9 +4,27 @@
   <img src="docs/icon.png" alt="SuperDiagnosticTool Icon" width="200"/>
 </p>
 
-**AI-Powered Windows Diagnostic & Self-Healing Tool**
+<p align="center">
+  <strong>AI-Powered Windows Diagnostic & Self-Healing Tool</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/releases"><img src="https://img.shields.io/github/v/release/Guettaf-hossam/SuperDiagnosticTool?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Guettaf-hossam/SuperDiagnosticTool?style=flat-square" alt="License"></a>
+  <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/stargazers"><img src="https://img.shields.io/github/stars/Guettaf-hossam/SuperDiagnosticTool?style=flat-square" alt="Stars"></a>
+</p>
 
 SuperDiagnosticTool is an intelligent system diagnostic utility that combines real-time hardware telemetry with Google Gemini AI to analyze, diagnose, and automatically remediate Windows system issues. Built with a safety-first architecture, it provides production-grade diagnostics for any Windows configuration.
+
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshot_main.png" alt="Main Interface" width="800"/>
+</p>
+
+*Main interface showing scan mode selection and problem description input*
 
 ---
 
@@ -47,67 +65,69 @@ SuperDiagnosticTool is an intelligent system diagnostic utility that combines re
 
 ---
 
-## Installation
+## Quick Start
+
+### Download
+
+**[Download SuperDiagnosticTool.exe](https://github.com/Guettaf-hossam/SuperDiagnosticTool/releases/latest)** - Standalone executable (no Python required)
+
+### Requirements
+
+- Windows 10 or Windows 11
+- Administrator privileges
+- Google Gemini API Key ([Get free key](https://makersuite.google.com/app/apikey))
+
+### First Run
+
+1. Download and run `SuperDiagnosticTool.exe`
+2. Enter your Google Gemini API key when prompted
+3. Describe your system issue
+4. Select scan mode (Quick/Deep/Complete)
+5. Review AI analysis and remediation script
+6. Execute fixes or view detailed HTML report
+
+---
+
+## Installation (For Developers)
 
 ### Prerequisites
-- **Operating System:** Windows 10/11 (Administrator privileges required)
-- **Python:** 3.8 or higher
-- **Google Gemini API Key:** [Get your free API key](https://makersuite.google.com/app/apikey)
+- Python 3.8 or higher
+- pip package manager
 
-### Dependencies
-Install required Python packages:
+### Install Dependencies
 
 ```bash
 pip install psutil google-generativeai rich
 ```
 
-Or use the auto-installer (dependencies are installed automatically on first run).
-
----
-
-## Usage
-
-### 1. API Key Setup
-
-**Option A: Environment Variable (Recommended)**
-```bash
-set GEMINI_API_KEY=your_api_key_here
-```
-
-**Option B: Key File**
-Create a `gemini.key` file in the same directory as the script:
-```
-your_api_key_here
-```
-
-**Option C: Interactive Input**
-The tool will prompt you to enter your API key on first run if not found.
-
-### 2. Run the Tool
+### Run from Source
 
 ```bash
 python super_diagnose_v2.py
 ```
 
-The tool will automatically:
-1. Request administrator privileges (UAC prompt)
-2. Display the main menu
-3. Prompt for problem description
-4. Offer scan mode selection:
-   - **Quick Scan:** CPU, RAM, basic info
-   - **Deep Scan:** Full system, network, logs, security, Bluetooth
-   - **Complete System Scan:** Everything + disk health, GPU, startup apps
-
-### 3. Review Results
-
-After scanning:
-- **AI Analysis:** View intelligent diagnosis in the terminal
-- **Remediation Script:** Review and optionally execute the generated PowerShell fix
-- **HTML Report:** Open detailed diagnostic report in your browser
-
 ---
 
-## Scan Modes
+## Usage
+
+### API Key Setup
+
+**Option A: Interactive Input (Recommended for first-time users)**
+- The tool will prompt you to enter your API key on first run
+- Key is saved locally in `gemini.key` for future use
+
+**Option B: Environment Variable**
+```bash
+set GEMINI_API_KEY=your_api_key_here
+```
+
+**Option C: Manual Key File**
+Create `gemini.key` in the same directory:
+```
+your_api_key_here
+```
+
+### Scan Modes
 
 | Mode | Scans | Use Case |
 |------|-------|----------|
@@ -115,13 +135,11 @@ After scanning:
 | **Deep Scan** | System, Network, Security, Logs, Bluetooth, Processes | Comprehensive troubleshooting |
 | **Complete Scan** | All of the above + Disk Health, GPU, Startup Apps | Full system audit |
 
----
-
-## Example Workflow
+### Example Workflow
 
 ```bash
 # 1. Run the tool
-python super_diagnose_v2.py
+SuperDiagnosticTool.exe
 
 # 2. Describe your issue
 > High CPU usage and slow performance
@@ -166,26 +184,15 @@ python super_diagnose_v2.py
 
 ---
 
-## File Structure
-
-```
-SuperDiagnosticTool/
-├── super_diagnose_v2.py    # Main diagnostic script
-├── gemini.key              # API key file (optional)
-├── AI_Reports/             # Generated HTML reports
-│   └── Diagnosis_YYYYMMDD_HHMMSS.html
-├── README.md               # This file
-└── LICENSE                 # GPL-3.0 License
-```
-
----
-
 ## Security & Privacy
 
 - **No Data Collection:** All analysis happens locally; only system telemetry is sent to Gemini API
-- **API Key Security:** Keys are sanitized and validated before use
+- **API Key Security:** Keys are stored locally and never committed to version control
 - **Admin Transparency:** User must explicitly approve all remediation scripts
 - **Non-Destructive:** No file deletion or registry modifications without user consent
+- **Open Source:** Full source code available for security auditing
+
+See [SECURITY.md](SECURITY.md) for detailed security information.
 
 ---
 
@@ -195,12 +202,13 @@ SuperDiagnosticTool/
 - Verify your API key is correct and active
 - Check for hidden characters or whitespace
 - Ensure the key has Gemini API access enabled
+- Regenerate key at https://makersuite.google.com/app/apikey
 
 ### "Not Running as Administrator"
-- Right-click the script and select "Run as Administrator"
+- Right-click the executable and select "Run as Administrator"
 - Or allow the UAC prompt when the tool auto-elevates
 
-### "Module Not Found" Error
+### "Module Not Found" Error (Python version)
 ```bash
 pip install --upgrade psutil google-generativeai rich
 ```
@@ -209,6 +217,35 @@ pip install --upgrade psutil google-generativeai rich
 - Ensure you're running Windows PowerShell 5.1 or later
 - Check that execution policy allows script execution
 - Review the script in `AI_Reports/remediation.ps1` for errors
+
+---
+
+## Building from Source
+
+### Build Executable
+
+```bash
+python build.py
+```
+
+This creates `dist/SuperDiagnosticTool.exe` with embedded icon and dependencies.
+
+### File Structure
+
+```
+SuperDiagnosticTool/
+├── super_diagnose_v2.py    # Main diagnostic script
+├── build.py                # Build script for creating EXE
+├── icon.ico                # Application icon
+├── docs/
+│   ├── icon.png           # Icon for README
+│   └── screenshot_main.png # Main interface screenshot
+├── AI_Reports/             # Generated HTML reports
+├── README.md               # This file
+├── LICENSE                 # GPL-3.0 License
+├── SECURITY.md             # Security documentation
+└── .gitignore              # Git ignore rules
+```
 
 ---
 
@@ -247,7 +284,8 @@ This project is licensed under the **GNU General Public License v3.0** - see the
 ## Author
 
 **Knight**  
-Email: hossam.guettaf@proton.me
+Email: hossam.guettaf@proton.me  
+GitHub: [@Guettaf-hossam](https://github.com/Guettaf-hossam)
 
 ---
 
@@ -259,5 +297,10 @@ Email: hossam.guettaf@proton.me
 
 ---
 
-**Version:** 1.0  
-**Last Updated:** January 2026
+<p align="center">
+  <strong>Version 1.0</strong> | Last Updated: January 2026
+</p>
+
+<p align="center">
+  Made with dedication by Knight | University of Bouira, Algeria
+</p>
