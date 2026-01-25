@@ -9,19 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **CRITICAL:** API key not persisting between program sessions
-  - Removed over-aggressive regex sanitization that was corrupting keys
-  - Added UTF-8 encoding to prevent character corruption
-  - Improved error messages for better debugging
+  - **Root Cause 1:** Over-aggressive regex sanitization (`re.sub`) was corrupting API keys during save
+  - **Root Cause 2:** Script used `os.getcwd()` instead of script directory, causing keys to be saved in different locations
+  - **Root Cause 3:** Old/invalid API key stored in Windows Environment Variable took precedence over file
+  - Removed destructive regex sanitization - now uses simple `.strip()` only
+  - Changed to use `SCRIPT_DIR` instead of current working directory
+  - Added UTF-8 encoding to all file operations
+  - Improved error messages and added detailed logging
 
 ### Changed
-- API key input now shows characters (visible input) to support Ctrl+V paste
+- API key input now shows characters (visible input) to support Ctrl+V paste on Windows
+- Added validation loop - program won't proceed with empty/invalid key
 - Enhanced file I/O operations with explicit UTF-8 encoding
-- Better error handling with informative user messages
+- Added automatic deletion of corrupted key files
+- Improved error handling with user-friendly messages
+- Added validation before `genai.configure()` to prevent silent failures
+
+### Added
+- New validation function `validate_key()` to check API key format
+- Error handling for environment variable conflicts
+- Debug logging to track API key loading process
+- Better user feedback during key input process
 
 ### Technical
-- Replaced `re.sub(r'[^a-zA-Z0-9\-\._]', '', key)` with simple `.strip()`
+- Replaced `re.sub(r'[^a-zA-Z0-9\-\._]', '', key)` with `.strip()`
+- Added `SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))`
 - Added `encoding="utf-8"` parameter to all `open()` calls
-- Replaced silent `except: pass` with proper exception handling
+- Replaced `except: pass` with proper exception handling
+- Changed `return ""` to `sys.exit(1)` for invalid input
+- Added environment variable validation before using `os.getenv()`
+
 
 ---
 
