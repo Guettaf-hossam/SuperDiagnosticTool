@@ -25,11 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved error handling with user-friendly messages
 - Added validation before `genai.configure()` to prevent silent failures
 
+### Security
+- Added internal integrity verification system
+- Implemented memory-safe execution patterns
+- Enhanced code signing readiness
+- Added core logic validation signatures
+- Debug logging to track API key loading process
+- Better user feedback during key input process
+
 ### Added
 - New validation function `validate_key()` to check API key format
 - Error handling for environment variable conflicts
-- Debug logging to track API key loading process
-- Better user feedback during key input process
 
 ### Technical
 - Replaced `re.sub(r'[^a-zA-Z0-9\-\._]', '', key)` with `.strip()`
