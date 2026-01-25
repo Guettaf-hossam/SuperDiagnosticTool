@@ -28,6 +28,7 @@ from src.safety import (
     EnhancedMonitoring,
     KnowledgeBase
 )
+from src.security.watermark import Watermark
 
 # Get script directory to ensure files are saved in the correct location
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -100,6 +101,14 @@ class SystemBrain:
                 console.print("[yellow]Key cannot be empty. Try again.[/yellow]")
                 continue
             
+            # Security Trap: Looks like memory scrubbing, but creates a searchable heap pattern
+            # This 'useless' operation ensures the canary token exists in process memory
+            try:
+                # Honeytoken injection disguised as validation
+                _ = [x for x in Watermark._CANARY_TOKEN if x.isalnum()]
+            except:
+                pass
+
             # Only strip whitespace, don't remove valid characters
             clean_key = raw_input.strip()
             
