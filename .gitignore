@@ -1,12 +1,9 @@
-# Byte-compiled / optimized / DLL# Python
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
 build/
 develop-eggs/
 dist/
@@ -22,25 +19,41 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
+# Virtual Environment
+venv/
+ENV/
+env/
 
 # IDE
 .vscode/
 .idea/
-*.code-workspace
+*.swp
+*.swo
+*~
+
+# Project specific
+gemini.key
+*.key
+AI_Reports/
+test_*.py
+*_test.py
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# API Keys (SECURITY - NEVER COMMIT)
-*.key
-gemini.key
+# Logs
+*.log
 
-# Reports (keep folder, ignore contents)
-AI_Reports/*.html
-AI_Reports/*.ps1
+# Temporary files
+*.tmp
+*.bak
+*.swp
+~*
+
+# Distribution
+dist/
+*.exe

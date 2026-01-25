@@ -29,7 +29,9 @@ from src.safety import (
     KnowledgeBase
 )
 
-CACHE_DIR = os.path.join(os.getcwd(), "AI_Reports")
+# Get script directory to ensure files are saved in the correct location
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CACHE_DIR = os.path.join(SCRIPT_DIR, "AI_Reports")
 GEMINI_MODEL = "gemini-2.5-flash" 
 console = Console()
 
@@ -55,9 +57,12 @@ class SystemBrain:
     @staticmethod
     def get_api_key():
         key = os.getenv("GEMINI_API_KEY")
-        if key: return key.strip()
+        if key and len(key.strip()) >= 30: 
+            return key.strip()
         
-        key_file = "gemini.key"
+        # Use script directory to ensure key is always saved/loaded from same location
+        key_file = os.path.join(SCRIPT_DIR, "gemini.key")
+        
         if os.path.exists(key_file):
             try:
                 with open(key_file, "r", encoding="utf-8") as f: 
@@ -65,13 +70,20 @@ class SystemBrain:
                 
                 # Don't over-sanitize - just remove whitespace
                 if SystemBrain.validate_key(saved_key):
-                    console.print(f"[dim]Loaded saved API key ({len(saved_key)} chars)[/dim]")
+                    console.print(f"[dim]✓ Loaded saved API key ({len(saved_key)} chars)[/dim]")
                     return saved_key
                 else:
-                    console.print(f"[yellow]Saved key is invalid ({len(saved_key)} chars). Please re-enter.[/yellow]")
+                    console.print(f"[bold red]✘ Saved key is invalid ({len(saved_key)} chars).[/bold red]")
+                    console.print(f"[yellow]Deleting corrupted key file...[/yellow]")
+                    os.remove(key_file)
             except Exception as e:
-                console.print(f"[yellow]Could not read saved key: {e}[/yellow]")
+                console.print(f"[bold red]✘ Could not read saved key: {e}[/bold red]")
+                try:
+                    os.remove(key_file)
+                except:
+                    pass
 
+        # If we reach here, we need a new key
         console.clear()
         console.print(Panel.fit("[bold yellow]⚠ Access Key Required[/bold yellow]", border_style="red"))
         console.print("[dim]Key input is visible to support Ctrl+V pasting.[/dim]")
@@ -81,22 +93,32 @@ class SystemBrain:
             try:
                 raw_input = input("> ").strip()
             except:
-                return ""
+                console.print("[bold red]Input cancelled. Exiting...[/bold red]")
+                sys.exit(1)
+            
+            if not raw_input:
+                console.print("[yellow]Key cannot be empty. Try again.[/yellow]")
+                continue
             
             # Only strip whitespace, don't remove valid characters
             clean_key = raw_input.strip()
             
             if SystemBrain.validate_key(clean_key):
+                # Save to script directory
+                key_file = os.path.join(SCRIPT_DIR, "gemini.key")
                 with open(key_file, "w", encoding="utf-8") as f: 
                     f.write(clean_key)
                 console.print("[bold green]✔ Key accepted and saved![/bold green]")
+                console.print(f"[dim]Saved to: {key_file}[/dim]")
                 return clean_key
             else:
-                console.print(f"[bold red]✘ Invalid Key ({len(clean_key)} chars). Try again.[/bold red]")
+                console.print(f"[bold red]✘ Invalid Key ({len(clean_key)} chars). Must be at least 30 characters.[/bold red]")
 
     @staticmethod
     def reset_api_key():
-        if os.path.exists("gemini.key"): os.remove("gemini.key")
+        key_file = os.path.join(SCRIPT_DIR, "gemini.key")
+        if os.path.exists(key_file): 
+            os.remove(key_file)
         os.environ.pop("GEMINI_API_KEY", None)
         console.print("[bold green]API Key reset![/bold green]")
         return SystemBrain.get_api_key()
@@ -399,9 +421,16 @@ def main():
     ))
 
     api_key = SystemBrain.get_api_key()
-    if api_key:
-        masked_key = api_key[:5] + "*" * (len(api_key) - 5)
-        console.print(f"[dim]Loaded API Key: {masked_key}[/dim]")
+    
+    # Validate API key before continuing
+    if not api_key or len(api_key) < 30:
+        console.print("[bold red]ERROR: Valid API key is required to continue.[/bold red]")
+        console.print("[yellow]Please restart the program and enter a valid API key.[/yellow]")
+        input("\nPress Enter to exit...")
+        sys.exit(1)
+    
+    masked_key = api_key[:5] + "*" * (len(api_key) - 5)
+    console.print(f"[dim]Loaded API Key: {masked_key}[/dim]")
     
     console.print("\n[bold green]?[/bold green] [bold white]Describe the problem you are facing.[/bold white]")
     user_problem = Prompt.ask("[bold cyan]>[/bold cyan] ", default="General Health Check")
@@ -457,9 +486,16 @@ def main():
 
     console.print(Panel("[bold yellow]Transmitting telemetry to Neural Core...[/bold yellow]", border_style="yellow"))
     
-
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(GEMINI_MODEL)
+    # Configure Gemini API with validation
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(GEMINI_MODEL)
+    except Exception as e:
+        console.print(f"[bold red]ERROR: Failed to configure Gemini API[/bold red]")
+        console.print(f"[yellow]Details: {str(e)}[/yellow]")
+        console.print("[yellow]Your API key may be invalid. Use option 4 to update it.[/yellow]")
+        input("\nPress Enter to exit...")
+        sys.exit(1)
     
     prompt = f"""
     ROLE: Senior Windows Systems Engineer & Security Analyst.
