@@ -206,7 +206,7 @@ SuperDiagnosticTool.exe
 - **API Key Security:** Keys are stored locally and never committed to version control
 - **Admin Transparency:** User must explicitly approve all remediation scripts
 - **Non-Destructive:** No file deletion or registry modifications without user consent
-- **Open Source:** Full source code available for security auditing
+- **Professional Tool:** Enterprise-grade diagnostics with AI-powered analysis
 
 See [SECURITY.md](SECURITY.md) for detailed security information.
 
@@ -258,7 +258,7 @@ SuperDiagnosticTool/
 │   └── screenshot_main.png # Main interface screenshot
 ├── AI_Reports/             # Generated HTML reports
 ├── README.md               # This file
-├── LICENSE                 # GPL-3.0 License
+├── LICENSE                 # Proprietary License
 ├── SECURITY.md             # Security documentation
 └── .gitignore              # Git ignore rules
 ```
@@ -280,20 +280,15 @@ The author is not responsible for any system damage, data loss, or unintended co
 
 ---
 
-## Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/improvement`)
-3. Commit your changes (`git commit -m 'Add improvement'`)
-4. Push to the branch (`git push origin feature/improvement`)
-5. Open a Pull Request
-
----
-
 ## License
 
-This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
+This project is proprietary software. All rights reserved.
+
+Copyright (c) 2026 Hossam Guettaf
+
+See the [LICENSE](LICENSE) file for complete terms and conditions.
+
+**Important:** Unauthorized copying, distribution, or modification of this software is strictly prohibited.
 
 ---
 
