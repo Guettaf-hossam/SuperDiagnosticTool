@@ -60,12 +60,17 @@ class SystemBrain:
         key_file = "gemini.key"
         if os.path.exists(key_file):
             try:
-                with open(key_file, "r") as f: 
+                with open(key_file, "r", encoding="utf-8") as f: 
                     saved_key = f.read().strip()
-                saved_key = re.sub(r'[^a-zA-Z0-9\-\._]', '', saved_key).strip()
+                
+                # Don't over-sanitize - just remove whitespace
                 if SystemBrain.validate_key(saved_key):
+                    console.print(f"[dim]Loaded saved API key ({len(saved_key)} chars)[/dim]")
                     return saved_key
-            except: pass
+                else:
+                    console.print(f"[yellow]Saved key is invalid ({len(saved_key)} chars). Please re-enter.[/yellow]")
+            except Exception as e:
+                console.print(f"[yellow]Could not read saved key: {e}[/yellow]")
 
         console.clear()
         console.print(Panel.fit("[bold yellow]⚠ Access Key Required[/bold yellow]", border_style="red"))
@@ -78,11 +83,13 @@ class SystemBrain:
             except:
                 return ""
             
-            clean_key = re.sub(r'[^a-zA-Z0-9\-\._]', '', raw_input).strip()
+            # Only strip whitespace, don't remove valid characters
+            clean_key = raw_input.strip()
             
             if SystemBrain.validate_key(clean_key):
-                with open(key_file, "w") as f: f.write(clean_key)
-                console.print("[bold green]✔ Key accepted![/bold green]")
+                with open(key_file, "w", encoding="utf-8") as f: 
+                    f.write(clean_key)
+                console.print("[bold green]✔ Key accepted and saved![/bold green]")
                 return clean_key
             else:
                 console.print(f"[bold red]✘ Invalid Key ({len(clean_key)} chars). Try again.[/bold red]")
