@@ -1,9 +1,6 @@
-<<<<<<< HEAD:LICENSE
-=======
 SuperDiagnosticTool - AI-Powered Windows Diagnostic Tool
 Copyright (C) 2026 GUETTAF HOUSSEM EDDINE
 
->>>>>>> e87b0102cda0b1eecbbda8efd85c7f9572205505:GNU GENERAL PUBLIC LICENSE (GPL-3.0)
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -458,8 +455,7 @@ for enforcing compliance by third parties with this License.
 
   An "entity transaction" is a transaction transferring control of an
 organization, or substantially all assets of one, or subdividing an
-organization, or merging organizations.  If propagation of a covered
-work results from an entity transaction, each party to that
+organization, or merging organizations.  If propagation of a covered work results from an entity transaction, each party to that
 transaction who receives a copy of the work also receives whatever
 licenses to the work the party's predecessor in interest had or could
 give under the previous paragraph, plus a right to possession of the
@@ -589,8 +585,7 @@ to choose that version for the Program.
 
   Later license versions may give you additional or different
 permissions.  However, no additional obligations are imposed on any
-author or copyright holder as a result of your choosing to follow a
-later version.
+author or copyright holder as a result of your choosing to follow a later version.
 
   15. Disclaimer of Warranty.
 
