@@ -52,7 +52,8 @@ class SystemBrain:
     def validate_key(key):
         if not key: return False
         clean_key = key.strip()
-        if len(clean_key) < 30: return False
+        if not clean_key.startswith("AIza"): return False
+        if len(clean_key) < 35: return False
         return True
 
     @staticmethod
@@ -617,6 +618,22 @@ def main():
             
         console.print(Panel(f"[bold green]ANALYSIS COMPLETE[/bold green]\\nReport: [underline]{report_file}[/underline]", border_style="green"))
         
+        if fix_script and len(fix_script) > 10:
+            console.print("\n")
+            console.print(Panel.fit("[bold magenta]AUTOMATED REMEDIATION SYSTEM[/bold magenta]", border_style="magenta"))
+            # ... rest of the code ...
+        
+        else:
+            # If no fix script (e.g. API Error or No Issues), pause so user sees the output
+            if "API Error" in ai_analysis:
+                console.print(Panel(f"[bold red]ANALYSIS FAILED: API Error[/bold red]\n\n{ai_analysis}", border_style="red"))
+            else:
+                console.print(Panel("[green]No automated fixes required or generated.[/green]", border_style="green"))
+            
+            console.print("\n[bold yellow]Press Enter to close...[/bold yellow]")
+            input()
+            return
+
         if fix_script and len(fix_script) > 10:
             console.print("\n")
             console.print(Panel.fit("[bold magenta]AUTOMATED REMEDIATION SYSTEM[/bold magenta]", border_style="magenta"))
