@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/releases"><img src="https://img.shields.io/github/v/release/Guettaf-hossam/SuperDiagnosticTool?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/releases"><img src="https://img.shields.io/github/downloads/Guettaf-hossam/SuperDiagnosticTool/total?style=flat-square&color=orange" alt="Downloads"></a>
   <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3.0-blue.svg?style=flat-square" alt="License"></a>
   <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/stargazers"><img src="https://img.shields.io/github/stars/Guettaf-hossam/SuperDiagnosticTool?style=flat-square" alt="Stars"></a>
 </p>
