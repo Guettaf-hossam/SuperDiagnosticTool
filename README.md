@@ -10,10 +10,11 @@
 
 <p align="center">
   <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/releases"><img src="https://img.shields.io/github/v/release/Guettaf-hossam/SuperDiagnosticTool?style=flat-square" alt="Release"></a>
-  <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/releases"><img src="https://img.shields.io/github/downloads/Guettaf-hossam/SuperDiagnosticTool/total?style=flat-square&color=orange" alt="Downloads"></a>
   <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3.0-blue.svg?style=flat-square" alt="License"></a>
   <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/stargazers"><img src="https://img.shields.io/github/stars/Guettaf-hossam/SuperDiagnosticTool?style=flat-square" alt="Stars"></a>
 </p>
+
+> **🎉 Milestone:** Over 100+ downloads reached in the first week (Combined versions).
 
 SuperDiagnosticTool is an intelligent system diagnostic utility that combines real-time hardware telemetry with Google Gemini AI to analyze, diagnose, and automatically remediate Windows system issues. Built with a safety-first architecture, it provides production-grade diagnostics for any Windows configuration.
 
