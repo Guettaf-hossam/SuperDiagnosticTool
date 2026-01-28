@@ -14,7 +14,7 @@
   <a href="https://github.com/Guettaf-hossam/SuperDiagnosticTool/stargazers"><img src="https://img.shields.io/github/stars/Guettaf-hossam/SuperDiagnosticTool?style=flat-square" alt="Stars"></a>
 </p>
 
-> **🎉 Milestone:** Over 100+ downloads reached in the first week (Combined versions).
+> ** Milestone:** Over 100+ downloads reached in the first week (Combined versions).
 
 SuperDiagnosticTool is an intelligent system diagnostic utility that combines real-time hardware telemetry with Google Gemini AI to analyze, diagnose, and automatically remediate Windows system issues. Built with a safety-first architecture, it provides production-grade diagnostics for any Windows configuration.
 
