@@ -6,6 +6,7 @@ import json
 import subprocess
 import webbrowser
 import time
+import html as html_lib
 from datetime import datetime
 import ctypes
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -59,8 +60,10 @@ class SystemBrain:
     @staticmethod
     def get_api_key():
         key = os.getenv("GEMINI_API_KEY")
-        if key and len(key.strip()) >= 30: 
+        if key and SystemBrain.validate_key(key):
             return key.strip()
+        elif key:
+            console.print("[bold red]✘ GEMINI_API_KEY is invalid. Please update it.[/bold red]")
         
         # Use script directory to ensure key is always saved/loaded from same location
         key_file = os.path.join(SCRIPT_DIR, "gemini.key")
@@ -323,6 +326,16 @@ def scan_suspicious_processes():
 def generate_super_html(data, ai_analysis, user_problem):
     """Generate a professional HTML diagnostic report with AI analysis."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    def sanitize_ai_html(value: str) -> str:
+        if not value:
+            return ""
+        cleaned = re.sub(r'(?is)<\s*(script|style)[^>]*>.*?<\s*/\s*\1\s*>', '', value)
+        cleaned = re.sub(r'(?i)\son\w+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)', '', cleaned)
+        return cleaned
+
+    safe_problem = html_lib.escape(user_problem, quote=True)
+    safe_ai_analysis = sanitize_ai_html(ai_analysis)
     
     css = """
     :root { --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --accent: #58a6ff; --danger: #f85149; --success: #3fb950; }
@@ -358,7 +371,7 @@ def generate_super_html(data, ai_analysis, user_problem):
             
             <div class="problem-box">
                 <h3 style="margin-top:0; color:var(--danger)">REPORTED ISSUE</h3>
-                <p>"{user_problem}"</p>
+                <p>"{safe_problem}"</p>
             </div>
 
             <div class="status-bar">
@@ -381,7 +394,7 @@ def generate_super_html(data, ai_analysis, user_problem):
             <div class="ai-analysis">
                 <h2>🤖 Intelligent Analysis & Fixes</h2>
                 <div style="line-height: 1.6; font-size: 1.1rem;">
-                    {ai_analysis.replace(chr(10), '<br>')}
+                    {safe_ai_analysis.replace(chr(10), '<br>')}
                 </div>
             </div>
 
@@ -419,6 +432,11 @@ def is_admin():
 
 def main():
     """Main execution flow for the diagnostic tool."""
+    if platform.system() != "Windows":
+        console.print("[bold red]ERROR: This tool only supports Windows.[/bold red]")
+        input("Press Enter to exit...")
+        sys.exit(1)
+
     if not is_admin():
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
         sys.exit()
@@ -618,12 +636,7 @@ def main():
             
         console.print(Panel(f"[bold green]ANALYSIS COMPLETE[/bold green]\\nReport: [underline]{report_file}[/underline]", border_style="green"))
         
-        if fix_script and len(fix_script) > 10:
-            console.print("\n")
-            console.print(Panel.fit("[bold magenta]AUTOMATED REMEDIATION SYSTEM[/bold magenta]", border_style="magenta"))
-            # ... rest of the code ...
-        
-        else:
+        if not (fix_script and len(fix_script) > 10):
             # If no fix script (e.g. API Error or No Issues), pause so user sees the output
             if "API Error" in ai_analysis:
                 console.print(Panel(f"[bold red]ANALYSIS FAILED: API Error[/bold red]\n\n{ai_analysis}", border_style="red"))
@@ -634,192 +647,190 @@ def main():
             input()
             return
 
-        if fix_script and len(fix_script) > 10:
-            console.print("\n")
-            console.print(Panel.fit("[bold magenta]AUTOMATED REMEDIATION SYSTEM[/bold magenta]", border_style="magenta"))
-            console.print("[dim]A remediation script has been generated based on the analysis:[/dim]\n")
+        console.print("\n")
+        console.print(Panel.fit("[bold magenta]AUTOMATED REMEDIATION SYSTEM[/bold magenta]", border_style="magenta"))
+        console.print("[dim]A remediation script has been generated based on the analysis:[/dim]\n")
+        
+        console.print(Panel(fix_script, title="PowerShell Remediation Script", style="white on black"))
+        
+        # ═══════════════════════════════════════════════════════
+        # PRODUCTION-GRADE SAFETY LAYER
+        # ═══════════════════════════════════════════════════════
+        
+        console.print("\n[bold cyan]═══ SAFETY VALIDATION ═══[/bold cyan]")
+        
+        # Step 0: Check Knowledge Base for known solutions
+        console.print("[cyan]→ Checking knowledge base...[/cyan]")
+        known_solution = KnowledgeBase.find_matching_solution(user_problem, collected_data)
+        
+        if known_solution:
+            console.print(f"[green]✔ Found known solution: {known_solution['description']}[/green]")
+            console.print(f"[yellow]  Success rate: {known_solution['success_rate']*100:.0f}%[/yellow]")
+            console.print(f"[yellow]  Risk level: {known_solution['risk_level']}[/yellow]\n")
             
-            console.print(Panel(fix_script, title="PowerShell Remediation Script", style="white on black"))
-            
-            # ═══════════════════════════════════════════════════════
-            # PRODUCTION-GRADE SAFETY LAYER
-            # ═══════════════════════════════════════════════════════
-            
-            console.print("\n[bold cyan]═══ SAFETY VALIDATION ═══[/bold cyan]")
-            
-            # Step 0: Check Knowledge Base for known solutions
-            console.print("[cyan]→ Checking knowledge base...[/cyan]")
-            known_solution = KnowledgeBase.find_matching_solution(user_problem, collected_data)
-            
-            if known_solution:
-                console.print(f"[green]✔ Found known solution: {known_solution['description']}[/green]")
-                console.print(f"[yellow]  Success rate: {known_solution['success_rate']*100:.0f}%[/yellow]")
-                console.print(f"[yellow]  Risk level: {known_solution['risk_level']}[/yellow]\n")
-                
-                # Validate AI solution against known solution
-                is_valid, reason, _ = KnowledgeBase.validate_ai_solution(fix_script, user_problem)
-                console.print(f"[cyan]AI Solution Validation:[/cyan] {reason}\n")
-            else:
-                console.print("[yellow]⚠ No known solution found - AI-generated solution will be used[/yellow]\n")
-            
-            # Step 1: Dry-Run Simulation
-            console.print("[cyan]→ Running dry-run simulation...[/cyan]")
-            simulation = DryRunSimulator.simulate(fix_script)
-            
-            console.print(f"[yellow]  Services affected:[/yellow] {len(simulation['services_affected'])}")
-            console.print(f"[yellow]  Files affected:[/yellow] {len(simulation['files_affected'])}")
-            console.print(f"[yellow]  Registry keys affected:[/yellow] {len(simulation['registry_affected'])}")
-            console.print(f"[yellow]  Total changes:[/yellow] {simulation['total_changes']}")
-            console.print(f"[yellow]  Estimated risk:[/yellow] {simulation['estimated_risk']}\n")
-            
-            # Step 2: Script Validation
-            console.print("[cyan]→ Validating script safety...[/cyan]")
-            is_safe, warnings, risk_score = ScriptValidator.validate(fix_script)
-            risk_level = ScriptValidator.get_risk_level(risk_score)
-            
-            if not is_safe:
-                console.print(f"[bold red]✘ SCRIPT BLOCKED - Failed safety validation[/bold red]")
-                console.print(f"[red]Risk Score: {risk_score}/100 ({risk_level})[/red]\n")
-                for warning in warnings[:5]:
-                    console.print(f"  [red]• {warning}[/red]")
-                console.print("\n[yellow]Script has been saved for manual review:[/yellow]")
-                script_path = os.path.join(CACHE_DIR, "remediation_BLOCKED.ps1")
-                with open(script_path, "w") as f:
-                    f.write(fix_script)
-                console.print(f"[dim]{script_path}[/dim]")
-                
-                if Confirm.ask("\nOpen detailed report?"):
-                    webbrowser.open(f"file://{report_file}")
-                return
-            
-            console.print(f"[green]✔ Script validation passed[/green]")
-            console.print(f"[yellow]  Risk Score: {risk_score}/100 ({risk_level})[/yellow]\n")
-            
-            if warnings:
-                console.print("[yellow]Warnings detected:[/yellow]")
-                for warning in warnings[:5]:
-                    console.print(f"  [yellow]• {warning}[/yellow]")
-                if len(warnings) > 5:
-                    console.print(f"  [dim]... and {len(warnings) - 5} more warnings[/dim]")
-                console.print()
-            
-            # Step 3: User Confirmation
-            console.print("[bold yellow]═══ EXECUTION CONFIRMATION ═══[/bold yellow]")
-            console.print(f"[yellow]Risk Level: {risk_level}[/yellow]")
-            console.print(f"[yellow]Total Changes: {simulation['total_changes']}[/yellow]\n")
-            
-            if not Confirm.ask("[bold yellow]Proceed with remediation?[/bold yellow]"):
-                console.print("[dim]Script execution cancelled.[/dim]")
-                
-                # Save script for manual execution
+            # Validate AI solution against known solution
+            is_valid, reason, _ = KnowledgeBase.validate_ai_solution(fix_script, user_problem)
+            console.print(f"[cyan]AI Solution Validation:[/cyan] {reason}\n")
+        else:
+            console.print("[yellow]⚠ No known solution found - AI-generated solution will be used[/yellow]\n")
+        
+        # Step 1: Dry-Run Simulation
+        console.print("[cyan]→ Running dry-run simulation...[/cyan]")
+        simulation = DryRunSimulator.simulate(fix_script)
+        
+        console.print(f"[yellow]  Services affected:[/yellow] {len(simulation['services_affected'])}")
+        console.print(f"[yellow]  Files affected:[/yellow] {len(simulation['files_affected'])}")
+        console.print(f"[yellow]  Registry keys affected:[/yellow] {len(simulation['registry_affected'])}")
+        console.print(f"[yellow]  Total changes:[/yellow] {simulation['total_changes']}")
+        console.print(f"[yellow]  Estimated risk:[/yellow] {simulation['estimated_risk']}\n")
+        
+        # Step 2: Script Validation
+        console.print("[cyan]→ Validating script safety...[/cyan]")
+        is_safe, warnings, risk_score = ScriptValidator.validate(fix_script)
+        risk_level = ScriptValidator.get_risk_level(risk_score)
+
+        if not is_safe:
+            console.print(f"[bold red]✘ SCRIPT BLOCKED - Failed safety validation[/bold red]")
+            console.print(f"[red]Risk Score: {risk_score}/100 ({risk_level})[/red]\n")
+            for warning in warnings[:5]:
+                console.print(f"  [red]• {warning}[/red]")
+            console.print("\n[yellow]Script has been saved for manual review:[/yellow]")
+            script_path = os.path.join(CACHE_DIR, "remediation_BLOCKED.ps1")
+            with open(script_path, "w") as f:
+                f.write(fix_script)
+            console.print(f"[dim]{script_path}[/dim]")
+
+            if Confirm.ask("\nOpen detailed report?"):
+                webbrowser.open(f"file://{report_file}")
+            return
+
+        console.print(f"[green]✔ Script validation passed[/green]")
+        console.print(f"[yellow]  Risk Score: {risk_score}/100 ({risk_level})[/yellow]\n")
+
+        if warnings:
+            console.print("[yellow]Warnings detected:[/yellow]")
+            for warning in warnings[:5]:
+                console.print(f"  [yellow]• {warning}[/yellow]")
+            if len(warnings) > 5:
+                console.print(f"  [dim]... and {len(warnings) - 5} more warnings[/dim]")
+            console.print()
+
+        # Step 3: User Confirmation
+        console.print("[bold yellow]═══ EXECUTION CONFIRMATION ═══[/bold yellow]")
+        console.print(f"[yellow]Risk Level: {risk_level}[/yellow]")
+        console.print(f"[yellow]Total Changes: {simulation['total_changes']}[/yellow]\n")
+
+        if not Confirm.ask("[bold yellow]Proceed with remediation?[/bold yellow]"):
+            console.print("[dim]Script execution cancelled.[/dim]")
+
+            # Save script for manual execution
+            script_path = os.path.join(CACHE_DIR, "remediation.ps1")
+            with open(script_path, "w") as f:
+                f.write(fix_script)
+            console.print(f"\n[cyan]Script saved to:[/cyan] [dim]{script_path}[/dim]")
+            console.print("[cyan]You can review and execute it manually as Administrator.[/cyan]")
+
+            if Confirm.ask("\nOpen detailed report?"):
+                webbrowser.open(f"file://{report_file}")
+            return
+
+        # Step 4: Create System Restore Point
+        console.print("\n[cyan]→ Creating system restore point...[/cyan]")
+        restore_success, restore_msg = RestorePointManager.create_restore_point()
+
+        if restore_success:
+            console.print(f"[green]✔ Restore point created: {restore_msg}[/green]")
+        else:
+            console.print(f"[red]✘ Failed to create restore point: {restore_msg}[/red]")
+            console.print("[yellow]This may happen if:[/yellow]")
+            console.print("  [dim]• System Protection is disabled[/dim]")
+            console.print("  [dim]• Not enough disk space[/dim]")
+            console.print("  [dim]• Recent restore point already exists[/dim]\n")
+
+            if not Confirm.ask("[bold red]Continue WITHOUT restore point? (NOT RECOMMENDED)[/bold red]"):
+                console.print("[dim]Execution cancelled for safety.[/dim]")
+
                 script_path = os.path.join(CACHE_DIR, "remediation.ps1")
                 with open(script_path, "w") as f:
                     f.write(fix_script)
                 console.print(f"\n[cyan]Script saved to:[/cyan] [dim]{script_path}[/dim]")
-                console.print("[cyan]You can review and execute it manually as Administrator.[/cyan]")
-                
+
                 if Confirm.ask("\nOpen detailed report?"):
                     webbrowser.open(f"file://{report_file}")
                 return
-            
-            # Step 4: Create System Restore Point
-            console.print("\n[cyan]→ Creating system restore point...[/cyan]")
-            restore_success, restore_msg = RestorePointManager.create_restore_point()
-            
-            if restore_success:
-                console.print(f"[green]✔ Restore point created: {restore_msg}[/green]")
-            else:
-                console.print(f"[red]✘ Failed to create restore point: {restore_msg}[/red]")
-                console.print("[yellow]This may happen if:[/yellow]")
-                console.print("  [dim]• System Protection is disabled[/dim]")
-                console.print("  [dim]• Not enough disk space[/dim]")
-                console.print("  [dim]• Recent restore point already exists[/dim]\n")
-                
-                if not Confirm.ask("[bold red]Continue WITHOUT restore point? (NOT RECOMMENDED)[/bold red]"):
-                    console.print("[dim]Execution cancelled for safety.[/dim]")
-                    
-                    script_path = os.path.join(CACHE_DIR, "remediation.ps1")
-                    with open(script_path, "w") as f:
-                        f.write(fix_script)
-                    console.print(f"\n[cyan]Script saved to:[/cyan] [dim]{script_path}[/dim]")
-                    
-                    if Confirm.ask("\nOpen detailed report?"):
-                        webbrowser.open(f"file://{report_file}")
-                    return
-            
-            # Step 5: Execute with Enhanced Monitoring
-            console.print("\n[bold green]═══ EXECUTING REMEDIATION ═══[/bold green]")
-            console.print("[cyan]→ Taking pre-execution snapshot...[/cyan]")
-            
-            # Initialize enhanced monitoring
-            monitor = EnhancedMonitoring()
-            pre_snapshot = monitor.take_snapshot()
-            console.print("[green]✔ Snapshot captured[/green]\n")
-            
-            console.print("[cyan]→ Running in monitored sandbox environment...[/cyan]\n")
-            
-            executor = SandboxExecutor(fix_script)
-            success, stdout, stderr = executor.execute_with_monitoring(timeout=300)
-            
-            # Take post-execution snapshot
-            console.print("\n[cyan]→ Taking post-execution snapshot...[/cyan]")
-            post_snapshot = monitor.take_snapshot()
-            
-            # Detect changes
-            changes = monitor.detect_changes(pre_snapshot, post_snapshot)
-            console.print(f"[yellow]Detected {len(changes)} system change(s)[/yellow]\n")
-            
-            if success:
-                console.print("[bold green]✔ REMEDIATION COMPLETED SUCCESSFULLY[/bold green]")
-                if stdout:
-                    console.print("\n[dim]Output:[/dim]")
-                    console.print(Panel(stdout, style="green"))
-                
-                # Show detected changes
+
+        # Step 5: Execute with Enhanced Monitoring
+        console.print("\n[bold green]═══ EXECUTING REMEDIATION ═══[/bold green]")
+        console.print("[cyan]→ Taking pre-execution snapshot...[/cyan]")
+
+        # Initialize enhanced monitoring
+        monitor = EnhancedMonitoring()
+        pre_snapshot = monitor.take_snapshot()
+        console.print("[green]✔ Snapshot captured[/green]\n")
+
+        console.print("[cyan]→ Running in monitored sandbox environment...[/cyan]\n")
+
+        executor = SandboxExecutor(fix_script)
+        success, stdout, stderr = executor.execute_with_monitoring(timeout=300)
+
+        # Take post-execution snapshot
+        console.print("\n[cyan]→ Taking post-execution snapshot...[/cyan]")
+        post_snapshot = monitor.take_snapshot()
+
+        # Detect changes
+        changes = monitor.detect_changes(pre_snapshot, post_snapshot)
+        console.print(f"[yellow]Detected {len(changes)} system change(s)[/yellow]\n")
+
+        if success:
+            console.print("[bold green]✔ REMEDIATION COMPLETED SUCCESSFULLY[/bold green]")
+            if stdout:
+                console.print("\n[dim]Output:[/dim]")
+                console.print(Panel(stdout, style="green"))
+
+            # Show detected changes
+            if changes:
+                console.print("\n[cyan]System Changes Detected:[/cyan]")
+                changes_report = monitor.format_changes_report(changes)
+                console.print(Panel(changes_report, style="yellow", title="Changes Made"))
+        else:
+            console.print("\n[bold red]✘ REMEDIATION FAILED[/bold red]")
+            if stderr:
+                console.print("\n[red]Error:[/red]")
+                console.print(Panel(stderr, style="red"))
+
+            # Offer rollback options
+            if restore_success or changes:
+                console.print("\n[yellow]Rollback Options Available:[/yellow]")
+
+                if restore_success:
+                    console.print("[yellow]  1. System Restore Point (full system rollback)[/yellow]")
+
                 if changes:
-                    console.print("\n[cyan]System Changes Detected:[/cyan]")
-                    changes_report = monitor.format_changes_report(changes)
-                    console.print(Panel(changes_report, style="yellow", title="Changes Made"))
-            else:
-                console.print("\n[bold red]✘ REMEDIATION FAILED[/bold red]")
-                if stderr:
-                    console.print("\n[red]Error:[/red]")
-                    console.print(Panel(stderr, style="red"))
-                
-                
-                # Offer rollback options
-                if restore_success or changes:
-                    console.print("\n[yellow]Rollback Options Available:[/yellow]")
-                    
-                    if restore_success:
-                        console.print("[yellow]  1. System Restore Point (full system rollback)[/yellow]")
-                    
-                    if changes:
-                        console.print("[yellow]  2. Selective Rollback (undo detected changes only)[/yellow]")
-                        
-                        if Confirm.ask("[bold yellow]Generate selective rollback script?[/bold yellow]"):
-                            rollback_script = monitor.generate_rollback_script(changes)
-                            rollback_path = os.path.join(CACHE_DIR, "rollback.ps1")
-                            with open(rollback_path, "w") as f:
-                                f.write(rollback_script)
-                            console.print(f"[green]✔ Rollback script saved to: {rollback_path}[/green]")
-                            console.print("[dim]Review and execute manually if needed[/dim]")
-                    
-                    if restore_success and Confirm.ask("\n[bold yellow]Use System Restore Point?[/bold yellow]"):
-                        console.print("[cyan]Please use Windows System Restore manually:[/cyan]")
-                        console.print("[dim]  1. Open Control Panel > System > System Protection[/dim]")
-                        console.print("[dim]  2. Click 'System Restore'[/dim]")
-                        console.print(f"[dim]  3. Select restore point: {restore_msg}[/dim]")
-            
-            # Show execution log
-            execution_log = SandboxExecutor.get_last_execution_log()
-            if execution_log:
-                console.print("\n[cyan]Execution log available[/cyan]")
-                if Confirm.ask("View execution log?"):
-                    console.print(Panel(execution_log, title="Execution Log", style="dim"))
-            
-            if Confirm.ask("\nOpen detailed diagnostic report?"):
-                webbrowser.open(f"file://{report_file}")
+                    console.print("[yellow]  2. Selective Rollback (undo detected changes only)[/yellow]")
+
+                    if Confirm.ask("[bold yellow]Generate selective rollback script?[/bold yellow]"):
+                        rollback_script = monitor.generate_rollback_script(changes)
+                        rollback_path = os.path.join(CACHE_DIR, "rollback.ps1")
+                        with open(rollback_path, "w") as f:
+                            f.write(rollback_script)
+                        console.print(f"[green]✔ Rollback script saved to: {rollback_path}[/green]")
+                        console.print("[dim]Review and execute manually if needed[/dim]")
+
+                if restore_success and Confirm.ask("\n[bold yellow]Use System Restore Point?[/bold yellow]"):
+                    console.print("[cyan]Please use Windows System Restore manually:[/cyan]")
+                    console.print("[dim]  1. Open Control Panel > System > System Protection[/dim]")
+                    console.print("[dim]  2. Click 'System Restore'[/dim]")
+                    console.print(f"[dim]  3. Select restore point: {restore_msg}[/dim]")
+
+        # Show execution log
+        execution_log = SandboxExecutor.get_last_execution_log()
+        if execution_log:
+            console.print("\n[cyan]Execution log available[/cyan]")
+            if Confirm.ask("View execution log?"):
+                console.print(Panel(execution_log, title="Execution Log", style="dim"))
+
+        if Confirm.ask("\nOpen detailed diagnostic report?"):
+            webbrowser.open(f"file://{report_file}")
     except Exception as e:
         console.print(f"[bold red]SYSTEM ERROR:[/bold red] {e}")
         input("Press Enter to exit...")
