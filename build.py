@@ -39,7 +39,7 @@ def main():
         "--icon", "icon.ico",
         "--hidden-import=google.generativeai",
         "--hidden-import=psutil",
-        "--hidden-import=rich",
+        "--collect-all", "rich",
         "--console",
         "--clean",
         "super_diagnose_v2.py"
