@@ -260,6 +260,8 @@ python build.py
 
 This creates `dist/SuperDiagnosticTool.exe` with embedded icon and dependencies.
 
+**Note:** If you see a "Windows protected your PC" warning, please read [TRUST_GUIDE.md](TRUST_GUIDE.md) for a quick fix or how to permanently whitelist the app.
+
 **Note**: Building on Linux/Mac will create platform-specific binaries, not Windows .exe files. Use GitHub Actions for official Windows releases.
 
 ### File Structure
