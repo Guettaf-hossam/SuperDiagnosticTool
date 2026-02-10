@@ -5,6 +5,33 @@ All notable changes to SuperDiagnosticTool will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-02-10
+
+### Enhanced
+- **API Key Validation:** Improved validation logic to prevent over-sanitization while ensuring key integrity
+  - Added `validate_key()` function to verify API key format
+  - Removed aggressive regex sanitization that could corrupt keys
+  - Better error messages when saved keys are invalid
+  - Automatic cleanup of corrupted key files
+  
+- **HTML Report Security:** Enhanced HTML report generation with proper sanitization
+  - Added `sanitize_ai_html()` function to safely handle AI-generated content
+  - Removes potentially dangerous script and style tags from AI responses
+  - Strips event handlers (onclick, onload, etc.) from HTML content
+  - Uses `html.escape()` for user input to prevent XSS attacks
+  - Maintains readability while ensuring security
+
+### Fixed
+- API key loading now properly validates before use
+- HTML reports are now secure against potential XSS vulnerabilities from AI responses
+
+### Technical
+- Implemented proper HTML sanitization regex patterns
+- Added content security measures for AI-generated HTML
+- Enhanced key validation with format checking
+
+---
+
 ## [1.0.1] - 2026-01-25
 
 ### Fixed
@@ -86,5 +113,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.0.2]: https://github.com/Guettaf-hossam/SuperDiagnosticTool/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Guettaf-hossam/SuperDiagnosticTool/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Guettaf-hossam/SuperDiagnosticTool/releases/tag/v1.0.0

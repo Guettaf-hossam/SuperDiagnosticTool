@@ -238,13 +238,29 @@ pip install --upgrade psutil google-generativeai rich
 
 ## Building from Source
 
-### Build Executable
+### Automated Builds (Recommended)
 
+The project uses GitHub Actions to automatically build Windows executables when a version tag is pushed:
+
+1. Push your changes to the main branch
+2. Create and push a version tag: `git tag -a v1.0.2 -m "Release notes" && git push origin v1.0.2`
+3. GitHub Actions will automatically build the .exe and create a release
+4. Download from the [Releases page](https://github.com/Guettaf-hossam/SuperDiagnosticTool/releases)
+
+See [RELEASE_PROCESS.md](RELEASE_PROCESS.md) for detailed instructions.
+
+### Manual Build (For Testing)
+
+**On Windows:**
 ```bash
+pip install pyinstaller
+pip install -r requirements.txt
 python build.py
 ```
 
 This creates `dist/SuperDiagnosticTool.exe` with embedded icon and dependencies.
+
+**Note**: Building on Linux/Mac will create platform-specific binaries, not Windows .exe files. Use GitHub Actions for official Windows releases.
 
 ### File Structure
 
@@ -253,11 +269,17 @@ SuperDiagnosticTool/
 ├── super_diagnose_v2.py    # Main diagnostic script
 ├── build.py                # Build script for creating EXE
 ├── icon.ico                # Application icon
+├── .github/workflows/      # GitHub Actions workflows
+│   └── release.yml        # Automated build and release
 ├── docs/
 │   ├── icon.png           # Icon for README
 │   └── screenshot_main.png # Main interface screenshot
+├── src/                    # Source modules
+│   ├── safety/            # Safety and validation modules
+│   └── security/          # Security features
 ├── AI_Reports/             # Generated HTML reports
 ├── README.md               # This file
+├── RELEASE_PROCESS.md      # Release process documentation
 ├── LICENSE                 # GPL-3.0 License
 ├── SECURITY.md             # Security documentation
 └── .gitignore              # Git ignore rules
