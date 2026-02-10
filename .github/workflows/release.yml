@@ -27,25 +27,6 @@ jobs:
     - name: Build executable
       run: python build.py
       
-    - name: Get version from tag
-      id: get_version
-      run: |
-        $version = $env:GITHUB_REF -replace 'refs/tags/', ''
-        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-      shell: pwsh
-      
-    - name: Read release notes
-      id: release_notes
-      run: |
-        if (Test-Path "RELEASE_${{ github.ref_name }}.md") {
-          $notes = Get-Content "RELEASE_${{ github.ref_name }}.md" -Raw
-          $notes = $notes -replace '"', '\"'
-          echo "NOTES=$notes" >> $env:GITHUB_OUTPUT
-        } else {
-          echo "NOTES=Release ${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
-        }
-      shell: pwsh
-      
     - name: Create Release and Upload Assets
       uses: softprops/action-gh-release@v1
       with:
@@ -54,5 +35,6 @@ jobs:
         files: dist/SuperDiagnosticTool.exe
         draft: false
         prerelease: false
+        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
