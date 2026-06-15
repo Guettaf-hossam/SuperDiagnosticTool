@@ -42,7 +42,7 @@ def main():
         "--collect-all", "rich",
         "--console",
         "--clean",
-        "super_diagnose_v2.py"
+        "super_diagnose_v1.py"
     ]
     
     success, output = run_command(" ".join(cmd))
