@@ -17,9 +17,7 @@ def run_command(cmd):
         return False, e.stderr
 
 def main():
-    print("=" * 60)
     print("SuperDiagnosticTool - Production Build")
-    print("=" * 60)
     print()
     
     # Check dependencies
@@ -42,7 +40,7 @@ def main():
         "--collect-all", "rich",
         "--console",
         "--clean",
-        "super_diagnose_v1.py"
+        "super_diagnose_v2.py"
     ]
     
     success, output = run_command(" ".join(cmd))
@@ -59,9 +57,7 @@ def main():
     
     print("[4/4] Done!")
     print()
-    print("=" * 60)
-    print("SUCCESS! EXE created: dist\\SuperDiagnosticTool.exe")
-    print("=" * 60)
+    print("[OK] EXE created: dist\\SuperDiagnosticTool.exe")
     
     return True
 

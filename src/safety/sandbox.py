@@ -9,31 +9,28 @@ from typing import Tuple, Optional
 
 class SandboxExecutor:
     """Execute PowerShell scripts with monitoring and safety limits."""
-    
+
     def __init__(self, script: str):
-        """
-        Initialize sandbox executor.
-        
+        """Initialize sandbox executor.
+
         Args:
-            script: PowerShell script to execute
+            script: PowerShell script to execute.
         """
         self.script = script
         self.execution_log = []
-        
+
     def execute_with_monitoring(self, timeout: int = 300) -> Tuple[bool, str, str]:
-        """
-        Execute script with real-time monitoring and safety limits.
-        
+        """Execute script with real-time monitoring and safety limits.
+
         Args:
-            timeout: Maximum execution time in seconds
-            
+            timeout: Maximum execution time in seconds.
+
         Returns:
-            (success, stdout, stderr): Execution results
+            Tuple of (success, stdout, stderr).
         """
         script_path = None
-        
+
         try:
-            # Create temporary script file with monitoring wrapper
             with tempfile.NamedTemporaryFile(
                 mode='w',
                 suffix='.ps1',
@@ -43,8 +40,7 @@ class SandboxExecutor:
                 wrapped_script = self._wrap_with_monitoring(self.script)
                 f.write(wrapped_script)
                 script_path = f.name
-            
-            # Execute with constraints
+
             result = subprocess.run(
                 [
                     "powershell",
@@ -58,38 +54,34 @@ class SandboxExecutor:
                 timeout=timeout,
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
-            
+
             success = result.returncode == 0
             return success, result.stdout, result.stderr
-            
+
         except subprocess.TimeoutExpired:
             return False, "", f"Script execution timeout after {timeout} seconds"
         except Exception as e:
             return False, "", f"Execution error: {str(e)}"
         finally:
-            # Cleanup temporary file
             if script_path and os.path.exists(script_path):
                 try:
                     os.unlink(script_path)
-                except:
+                except OSError:
                     pass
-    
+
     def _wrap_with_monitoring(self, script: str) -> str:
-        """
-        Wrap script with monitoring and safety code.
-        
+        """Wrap script with monitoring and safety code.
+
         Args:
-            script: Original PowerShell script
-            
+            script: Original PowerShell script.
+
         Returns:
-            Wrapped script with monitoring
+            Wrapped script with logging and error handling.
         """
         wrapper = f'''
-# SuperDiagnostic Safety Wrapper
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-# Execution log
 $LogFile = "$env:TEMP\\superdiagnostic_execution_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 
 function Log-Action {{
@@ -109,19 +101,12 @@ function Log-Error {{
 }}
 
 try {{
-    Log-Action "═══════════════════════════════════════════"
     Log-Action "SuperDiagnostic Remediation Script Started"
-    Log-Action "═══════════════════════════════════════════"
     Log-Action "Log file: $LogFile"
-    Log-Action ""
-    
-    # Original script execution
+
 {self._indent_script(script, 4)}
-    
-    Log-Action ""
-    Log-Action "═══════════════════════════════════════════"
+
     Log-Action "Script completed successfully"
-    Log-Action "═══════════════════════════════════════════"
     exit 0
 }}
 catch {{
@@ -136,48 +121,44 @@ finally {{
 }}
 '''
         return wrapper
-    
+
     def _indent_script(self, script: str, spaces: int) -> str:
-        """
-        Indent script lines for proper nesting.
-        
+        """Indent script lines for proper nesting.
+
         Args:
-            script: Script to indent
-            spaces: Number of spaces to indent
-            
+            script: Script to indent.
+            spaces: Number of spaces to indent.
+
         Returns:
-            Indented script
+            Indented script.
         """
         indent = ' ' * spaces
         lines = script.split('\n')
         indented_lines = [indent + line if line.strip() else line for line in lines]
         return '\n'.join(indented_lines)
-    
+
     @staticmethod
     def get_last_execution_log() -> Optional[str]:
-        """
-        Retrieve the last execution log file content.
-        
+        """Retrieve the last execution log file content.
+
         Returns:
-            Log content or None if not found
+            Log content or None if not found.
         """
         try:
             temp_dir = os.environ.get('TEMP', '')
             if not temp_dir:
                 return None
-            
-            # Find most recent log file
+
             log_pattern = "superdiagnostic_execution_*.log"
             log_files = list(Path(temp_dir).glob(log_pattern))
-            
+
             if not log_files:
                 return None
-            
-            # Get most recent
+
             latest_log = max(log_files, key=lambda p: p.stat().st_mtime)
-            
+
             with open(latest_log, 'r', encoding='utf-8') as f:
                 return f.read()
-                
+
         except Exception:
             return None

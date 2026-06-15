@@ -186,7 +186,7 @@ class DryRunSimulator:
             Formatted summary string
         """
         lines = []
-        lines.append("═══ DRY-RUN SIMULATION RESULTS ═══\n")
+        lines.append("DRY-RUN SIMULATION RESULTS\n")
         
         lines.append(f"Total Changes: {analysis['total_changes']}")
         lines.append(f"Risk Level: {analysis['estimated_risk']}\n")
