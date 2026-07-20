@@ -131,10 +131,7 @@ class SystemBrain:
                 console.print("[yellow]Key cannot be empty. Try again.[/yellow]")
                 continue
 
-            try:
-                _ = [x for x in Watermark._CANARY_TOKEN if x.isalnum()]
-            except Exception:
-                pass
+
 
             clean_key = raw_input.strip()
 
