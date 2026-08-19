@@ -1,6 +1,10 @@
 """Multi-level PowerShell script validation and critical-path interception."""
 
 import re
+import os
+import json
+import tempfile
+import subprocess
 from typing import Tuple, List, Dict
 
 
@@ -128,11 +132,59 @@ class ScriptValidator:
         r'System\.Net\.WebClient',
         r'Invoke-Expression',
         r'Invoke-Command',
+        # PowerShell built-in aliases that bypass naive name matching.
+        # 'ri' = Remove-Item, 'rd' = rmdir, 'kill' = Stop-Process.
+        r'\bri\b\s+.*(C:\\|HKLM|HKCU)',
+        r'\brd\b\s+/s',
+        r'\bkill\b\s+-[Ff]',
+        # String-concatenation obfuscation: "Rem"+"ove-Item", ('Re'+'move-Item')
+        r'["\'][A-Za-z]+["\']\s*\+\s*["\'][a-z-]+["\']',
+        # Backtick character insertion used to split keywords: R`emove-Item
+        r'[A-Za-z]+`[A-Za-z]+',
     ]
 
     @classmethod
+    def _extract_ast_commands(cls, script: str) -> List[str]:
+        """Extract all command invocations using PowerShell AST."""
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.ps1', delete=False, encoding='utf-8') as f:
+                f.write(script)
+                temp_path = f.name
+                
+            ps_code = f"""
+$ErrorActionPreference = 'SilentlyContinue'
+$ast = [System.Management.Automation.Language.Parser]::ParseFile('{temp_path}', [ref]$null, [ref]$null)
+$cmds = $ast.FindAll({{$args[0] -is [System.Management.Automation.Language.CommandAst]}}, $true) | ForEach-Object {{
+    $n = $_.GetCommandName()
+    if ($n) {{ $n }} else {{ "<DYNAMIC>" }}
+}}
+if ($cmds) {{
+    @{{ cmds = @($cmds) }} | ConvertTo-Json -Compress
+}} else {{
+    '{{ "cmds": [] }}'
+}}
+"""
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_code],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+            if result.returncode == 0 and result.stdout.strip():
+                parsed = json.loads(result.stdout.strip())
+                return parsed.get("cmds", [])
+            return []
+        except Exception:
+            return []
+
+    @classmethod
     def validate(cls, script: str) -> Tuple[bool, List[str], int]:
-        """Validate PowerShell script with multi-level checks.
+        """Validate PowerShell script with multi-level structural checks.
 
         Args:
             script: PowerShell script content.
@@ -154,17 +206,27 @@ class ScriptValidator:
                 warnings.append(f"SUSPICIOUS: Potentially malicious pattern: {pattern}")
                 risk_score += 10
 
-        lines = script.split('\n')
-        for line in lines:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            cmd_match = re.match(r'^([A-Za-z][A-Za-z0-9-]*)', line)
-            if cmd_match:
-                cmd = cmd_match.group(1)
-                if cmd not in cls.WHITELIST_COMMANDS and not cmd.startswith('$'):
-                    warnings.append(f"Non-whitelisted command: {cmd} in line: {line[:50]}")
-                    risk_score += 2
+        ast_commands = cls._extract_ast_commands(script)
+        if ast_commands:
+            for cmd in ast_commands:
+                if cmd == "<DYNAMIC>":
+                    return False, ["BLOCKED: Dynamic/obfuscated invocation detected via AST"], 100
+                if cmd not in cls.WHITELIST_COMMANDS:
+                    warnings.append(f"Non-whitelisted command (AST detected): {cmd}")
+                    risk_score += 3
+        else:
+            # Fallback to naive regex if AST parsing fails
+            lines = script.split('\n')
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                cmd_match = re.match(r'^([A-Za-z][A-Za-z0-9-]*)', line)
+                if cmd_match:
+                    cmd = cmd_match.group(1)
+                    if cmd not in cls.WHITELIST_COMMANDS and not cmd.startswith('$'):
+                        warnings.append(f"Non-whitelisted command: {cmd} in line: {line[:50]}")
+                        risk_score += 2
 
         for pattern, score in cls.RISKY_PATTERNS.items():
             matches = re.findall(pattern, script, re.IGNORECASE)

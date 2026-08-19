@@ -29,7 +29,7 @@ from src.safety import (
     EnhancedMonitoring,
     KnowledgeBase,
 )
-from src.security.watermark import Watermark
+
 from src.security.credential_vault import CredentialVault
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -948,7 +948,7 @@ def main():
         pre_snapshot = monitor.take_snapshot()
         console.print("[green][OK] Snapshot captured[/green]\n")
 
-        console.print("[cyan]> Running in monitored sandbox environment...[/cyan]\n")
+        console.print("[cyan]> Executing script under monitored environment (timeout: 5 min)...[/cyan]\n")
 
         executor = SandboxExecutor(fix_script)
         success, stdout, stderr = executor.execute_with_monitoring(timeout=300)

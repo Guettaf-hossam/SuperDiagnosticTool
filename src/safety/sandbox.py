@@ -1,4 +1,10 @@
-"""Sandbox executor for safe PowerShell script execution with monitoring."""
+"""Monitored executor for PowerShell script execution with logging and timeout.
+
+Note: This is NOT an OS-level sandbox (no VM, container, or namespace isolation).
+Execution runs directly on the host under the caller's privilege level.
+Safety is enforced upstream by ScriptValidator and CriticalPathInterceptor before
+this executor is ever reached.
+"""
 
 import subprocess
 import tempfile
@@ -8,13 +14,23 @@ from typing import Tuple, Optional
 
 
 class SandboxExecutor:
-    """Execute PowerShell scripts with monitoring and safety limits."""
+    """Execute PowerShell scripts with pre/post logging and a hard timeout.
+
+    The name is retained for API compatibility. Actual isolation is limited to:
+    - A hard timeout (default 300 s) via subprocess.run
+    - Full stdout/stderr capture
+    - Automatic temp-file cleanup
+    - A PowerShell try/catch wrapper that logs every action
+
+    Any script reaching this class must have already passed ScriptValidator
+    and CriticalPathInterceptor checks.
+    """
 
     def __init__(self, script: str):
-        """Initialize sandbox executor.
+        """Initialize the monitored executor.
 
         Args:
-            script: PowerShell script to execute.
+            script: PowerShell script content to execute.
         """
         self.script = script
         self.execution_log = []

@@ -1,4 +1,4 @@
-"""Safety module for SuperDiagnosticTool - Production-grade security features."""
+"""Safety module for SuperDiagnosticTool — multi-layer script validation and monitored execution."""
 
 from .restore_point import RestorePointManager
 from .validator import ScriptValidator, CriticalPathInterceptor
